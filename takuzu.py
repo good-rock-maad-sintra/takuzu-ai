@@ -48,19 +48,23 @@ class Board:
     def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
-        if row == 0:
-            return (None, self.board[row+1][col])
-        else if row == self.size - 1:
-            return (self.board[row-1][col], None)
+        if row == 0 and row == self.size - 1:
+            return (None, None)
+        elif row == 0:
+            return (self.board[row+1][col], None)
+        elif row == self.size - 1:
+            return (None, self.board[row-1][col])
         else:
             return (self.board[row-1][col], self.board[row+1][col])
 
     def adjacent_horizontal_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        if col == 0:
+        if col == 0 and col == self.size - 1:
+            return (None, None)
+        elif col == 0:
             return (None, self.board[row][col+1])
-        else if col == self.size - 1:
+        elif col == self.size - 1:
             return (self.board[row][col-1], None)
         else:
             return (self.board[row][col-1], self.board[row][col+1])
