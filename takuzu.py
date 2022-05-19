@@ -43,20 +43,27 @@ class Board:
 
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
-        # TODO
-        pass
+        return self.board[row][col]
 
     def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
-        # TODO
-        pass
+        if row == 0:
+            return (None, self.board[row+1][col])
+        else if row == self.size - 1:
+            return (self.board[row-1][col], None)
+        else:
+            return (self.board[row-1][col], self.board[row+1][col])
 
     def adjacent_horizontal_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        # TODO
-        pass
+        if col == 0:
+            return (None, self.board[row][col+1])
+        else if col == self.size - 1:
+            return (self.board[row][col-1], None)
+        else:
+            return (self.board[row][col-1], self.board[row][col+1])
 
     @staticmethod
     def parse_instance_from_stdin():
@@ -114,7 +121,6 @@ class Takuzu(Problem):
         pass
 
     # TODO: outros metodos da classe
-
 
 if __name__ == "__main__":
     # TODO:
