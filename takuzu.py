@@ -7,6 +7,7 @@
 # 99256 João Rocha
 
 import sys
+import numpy as np
 from search import (
     Problem,
     Node,
@@ -28,8 +29,6 @@ class TakuzuState:
 
     def __lt__(self, other):
         return self.id < other.id
-
-    # TODO: outros metodos da classe
 
 
 class Board:
@@ -54,21 +53,21 @@ class Board:
     def get_column(self, col: int):
         return [self.board[x][col] for x in range(self.size)]
 
-    def adjacent_vertical_numbers(self, row: int, col: int) -> tuple(int, int):
+    def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
         if not 0 <= row < self.size or not 0 <= row < self.size:
             return None
         return (self.get_number(row-1, col), self.get_number(row+1, col))
 
-    def adjacent_horizontal_numbers(self, row: int, col: int) -> tuple(int, int):
+    def adjacent_horizontal_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
         if not 0 <= col < self.size or not 0 <= col < self.size:
             return None
         return (self.get_number(row, col-1), self.get_number(row, col+1))
 
-    def count_row(self, row: int) -> tuple(int, int):
+    def count_row(self, row: int) -> (int, int):
         counts = [0, 0]
         for y in range(self.size):
             val = self.board[row][y]
@@ -76,7 +75,7 @@ class Board:
                 counts[val] += 1
         return tuple(counts)
 
-    def count_column(self, col: int) -> tuple(int, int):
+    def count_column(self, col: int) -> (int, int):
         counts = [0, 0]
         for x in range(self.size):
             val = self.board[x][col]
@@ -121,26 +120,34 @@ class Board:
             board.append(list(map(int, line.split())))
         return Board(n, board)
     
+    def transpose_board(self):
+        return np.transpose(self.board)
+
     def __str__(self) -> str:
         return "\n".join(["\t".join(map(str, row)) for row in self.board])
-
-    # TODO: outros metodos da classe
 
 
 class Takuzu(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
-        # TODO
-        pass
+        self.initial = TakuzuState(board)
 
     def actions(self, state: TakuzuState):
-        """Retorna uma lista de ações que podem ser executadas a
-        partir do estado passado como argumento."""
         moves = []
+        # in the beginning of the moves list will always be the mandatory moves
         for x in range(state.size):
             for y in range(state.size):
                 if board.cell_empty(x, y):
-                    moves.append((x,y,0), (x,y,1))
+                    possible_moves = [(x, y, 0), (x, y, 1)]
+                    if self.mandatory(state, possible_moves[0]):
+                        moves.insert(0, possible_moves[0])
+                    elif not self.impossible(state, possible_moves[0]):
+                        moves.append(possible_moves[0])
+                    
+                    if self.mandatory(state, possible_moves[1]):
+                        moves.insert(0, possible_moves[1])
+                    elif not self.impossible(state, possible_moves[1]):
+                        moves.append(possible_moves[1])                    
         return moves
 
     def result(self, state: TakuzuState, action):
@@ -149,6 +156,9 @@ class Takuzu(Problem):
         das presentes na lista obtida pela execução de
         self.actions(state)."""
         x, y, val = action
+        # executing the action itself should be a method in board
+        # since, for abstraction's sake, Takuzu shouldn't know the internal representation
+        # of the board
         new_board = state.board
         new_board[x][y] = val
         return TakuzuState(new_board)
@@ -157,29 +167,13 @@ class Takuzu(Problem):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
-        # TODO
-        pass
+        board = state.board
+        rows = [row for row in board]
+        columns = [column for column in board.transpose()]
+        return len(rows) == len(set(rows)) and \
+            len(columns) == len(set(columns)) # and check if the board has an equal number of 0's and 1's (or off by 1, in case of odd sizes)
 
-    def h(self, node: Node, action):
-        def impossible(node: Node, action):
-            """Verifica se executar a ação-argumento leva a um estado em que é
-            impossível completar o tabuleiro segundo as regras do jogo."""
-            state = node.state
-            hyp_state = self.result(state, action)
-            row, col, val = action
-            cap = int(state.size // 2 + bool(state.size % 2)) # produces ceiling
-            return board.count_column(col)[val] == cap or \
-                    board.count_row(row)[val] == cap or \
-                    hyp_state.board.check_3_straight(row, col)
-
-        def mandatory(node: Node, action):
-            """Verifica se executar a ação-argumento é obrigatório - ou seja,
-            se não é possível colocar outro valor na posição pretendida."""
-            conj_action = (action[0], action[1], 1-action[2])
-            # antes estava _not_ impossible, mas tipo, só é obrigatório se
-            # o inverso for impossivel, certo?
-            return self.impossible(node, conj_action)
-
+    def h(self, node: Node):
         def adjacency_tendency_row(node: Node, action):
             row, col, val = action
             board = node.state.board
@@ -191,16 +185,36 @@ class Takuzu(Problem):
             elif (x,y) == (0,2) or (x,y) == (2,0):
                 return 1
 
-        if mandatory(node, action):
+        moves = self.actions(node.state)
+        if self.mandatory(node, moves[0]):
             return 0
-        elif impossible(node, action):
+        elif self.impossible(node, moves[0]):
             return 1
+    
+    def impossible(self, node: Node, action):
+        """Verifica se executar a ação-argumento leva a um estado em que é
+        impossível completar o tabuleiro segundo as regras do jogo."""
+        state = node.state
+        hyp_state = self.result(state, action)
+        row, col, val = action
+        cap = int(state.size // 2 + bool(state.size % 2)) # produces ceiling
+        return board.count_column(col)[val] == cap or \
+                board.count_row(row)[val] == cap or \
+                hyp_state.board.check_3_straight(row, col)
+
+    def mandatory(self, node: Node, action):
+        """Verifica se executar a ação-argumento é obrigatório - ou seja,
+        se não é possível colocar outro valor na posição pretendida."""
+        conj_action = (action[0], action[1], 1-action[2])
+        # antes estava _not_ impossible, mas tipo, só é obrigatório se
+        # o inverso for impossivel, certo?
+        return self.impossible(node, conj_action)
 
 if __name__ == "__main__":
-    # TODO:
-    # Ler o ficheiro do standard input,
+    print("cenas")
     board = Board.parse_instance_from_stdin()
-    # Usar uma técnica de procura para resolver a instância,
-    # Retirar a solução a partir do nó resultante,
-    # Imprimir para o standard output no formato indicado.
-    pass
+    # print(board)
+    takuzu = Takuzu(board)
+    # obviamente depois a estratégia varia, e temos de testar várias
+    goal = depth_first_tree_search(takuzu)
+    print(goal.state.board)
