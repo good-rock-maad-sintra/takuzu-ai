@@ -36,6 +36,7 @@ class Board:
     """Representação interna de um tabuleiro de Takuzu."""
     size = 0
     board = []
+    EMPTY_CELL = 2
 
     def __init__(self, size, board) -> None:
         self.size = size
@@ -53,65 +54,55 @@ class Board:
     def get_column(self, col: int):
         return [self.board[x][col] for x in range(self.size)]
 
-    def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
+    def adjacent_vertical_numbers(self, row: int, col: int) -> tuple(int, int):
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
         if not 0 <= row < self.size or not 0 <= row < self.size:
             return None
         return (self.get_number(row-1, col), self.get_number(row+1, col))
 
-    def adjacent_horizontal_numbers(self, row: int, col: int) -> (int, int):
+    def adjacent_horizontal_numbers(self, row: int, col: int) -> tuple(int, int):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
         if not 0 <= col < self.size or not 0 <= col < self.size:
             return None
         return (self.get_number(row, col-1), self.get_number(row, col+1))
 
-    def count_row(self, row: int) -> (int, int):
-        ct0, ct1 = 0, 0
+    def count_row(self, row: int) -> tuple(int, int):
+        counts = [0, 0]
         for y in range(self.size):
-            if self.board[row][y] == 0:
-                ct0 += 1
-            if self.board[row][y] == 1:
-                ct1 += 1
-        return (ct0, ct1)
+            val = self.board[row][y]
+            if val in (0, 1):
+                counts[val] += 1
+        return tuple(counts)
 
-    def count_column(self, col: int) -> (int, int):
-        ct0, ct1 = 0, 0
+    def count_column(self, col: int) -> tuple(int, int):
+        counts = [0, 0]
         for x in range(self.size):
-            if self.board[x][col] == 0:
-                ct0 += 1
-            if self.board[x][col] == 1:
-                ct1 += 1
-        return (ct0, ct1)
+            val = self.board[x][col]
+            if val in (0, 1):
+                counts[val] += 1
+        return tuple(counts)
+    
+    def check_3_straight(self, row: int, col: int, val: int) -> bool:
+        """Verifica se ao colocar um valor numa posição cria uma situação
+        de 3 valores iguais adjacentes - True indica que cria."""
+        to_avoid = (val, val)
+        def checker(line: int, possibilities: list):
+            if self.size == 1:
+                return False
+            elif line == 0:
+                return possibilities[2] == to_avoid
+            elif line == self.size - 1:
+                return possibilities[0] == to_avoid
+            return any(possibilities[i] == to_avoid for i in range(3))
+        
+        vertical_adjacencies = [self.adjacent_vertical_numbers(row + i, col) for i in range(-1, 1)]
+        horizontal_adjacencies = [self.adjacent_horizontal_numbers(row, col + i) for i in range(-1, 1)]
+        return checker(row, vertical_adjacencies) or checker(col, horizontal_adjacencies)
 
-    def check_3_straight_vertical(self, row: int, col: int) -> bool:
-        if row == 0 and row == self.size - 1:
-            return False
-        elif row == 0:
-            return self.adjacent_vertical_numbers(row+1, col) == (val, val)
-        elif row == self.size - 1:
-            return self.adjacent_vertical_numbers(row-1, col) == (val, val)
-        else:
-            return self.adjacent_vertical_numbers(row-1, col) == (val, val) \
-                or self.adjacent_vertical_numbers(row, col) == (val, val) \
-                or self.adjacent_vertical_numbers(row+1, col) == (val, val)
-
-    def check_3_straight_horizontal(self, row: int, col: int) -> bool:
-        if col == 0 and col == self.size - 1:
-            return False
-        elif col == 0:
-            return self.adjacent_horizontal_numbers(row, col+1) == (val, val)
-        elif col == self.size - 1:
-            return self.adjacent_horizontal_numbers(row, col-1) == (val, val)
-        else:
-            return self.adjacent_horizontal_numbers(row, col-1) == (val, val) \
-                or self.adjacent_horizontal_numbers(row, col) == (val, val) \
-                or self.adjacent_horizontal_numbers(row, col+1) == (val, val)
-
-    def check_3_straight(self, row: int, col: int) -> bool:
-        return self.check_3_straight_horizontal(row, col) \
-            or self.check_3_straight_vertical(row, col)
+    def cell_empty(self, row, col):
+        return self.board[row][col] == self.EMPTY_CELL
 
     @staticmethod
     def parse_instance_from_stdin():
@@ -145,13 +136,12 @@ class Takuzu(Problem):
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        res = []
+        moves = []
         for x in range(state.size):
             for y in range(state.size):
-                if state.board[x][y] == 2:
-                    res.append((x,y,0))
-                    res.append((x,y,1))
-        return res
+                if board.cell_empty(x, y):
+                    moves.append((x,y,0), (x,y,1))
+        return moves
 
     def result(self, state: TakuzuState, action):
         """Retorna o estado resultante de executar a 'action' sobre
@@ -170,24 +160,25 @@ class Takuzu(Problem):
         # TODO
         pass
 
-    def h(self, node: Node):
-        """Função heuristica utilizada para a procura A*."""
-        # TODO
-        pass
-
-    # TODO: outros metodos da classe
-
-    def h(node: Node, action):
+    def h(self, node: Node, action):
         def impossible(node: Node, action):
+            """Verifica se executar a ação-argumento leva a um estado em que é
+            impossível completar o tabuleiro segundo as regras do jogo."""
             state = node.state
+            hyp_state = self.result(state, action)
             row, col, val = action
-            return board.count_column(col)[val] == ceil(state.size / 2) or \
-                    board.count_row(row)[val] == ceil(state.size / 2) or \
-                    result(node.state, action).board.check_3_straight(row, col)
+            cap = int(state.size // 2 + bool(state.size % 2)) # produces ceiling
+            return board.count_column(col)[val] == cap or \
+                    board.count_row(row)[val] == cap or \
+                    hyp_state.board.check_3_straight(row, col)
 
         def mandatory(node: Node, action):
+            """Verifica se executar a ação-argumento é obrigatório - ou seja,
+            se não é possível colocar outro valor na posição pretendida."""
             conj_action = (action[0], action[1], 1-action[2])
-            return not self.impossible(node, conj_action)
+            # antes estava _not_ impossible, mas tipo, só é obrigatório se
+            # o inverso for impossivel, certo?
+            return self.impossible(node, conj_action)
 
         def adjacency_tendency_row(node: Node, action):
             row, col, val = action
