@@ -36,6 +36,7 @@ class Board:
     """Representação interna de um tabuleiro de Takuzu."""
     size = 0
     board = []
+    EMPTY_CELL = 2
 
     def __init__(self, size, board) -> None:
         self.size = size
@@ -98,6 +99,9 @@ class Board:
         horizontal_adjacencies = [self.adjacent_horizontal_numbers(row, col + i) for i in range(-1, 1)]
         return checker(row, vertical_adjacencies) or checker(col, horizontal_adjacencies)
 
+    def cell_empty(self, row, col):
+        return self.board[row][col] == self.EMPTY_CELL
+
     @staticmethod
     def parse_instance_from_stdin():
         """Lê o test do standard input (stdin) que é passado como argumento
@@ -133,9 +137,7 @@ class Takuzu(Problem):
         moves = []
         for x in range(state.size):
             for y in range(state.size):
-                # TODO: wondering if we should have a constant for 2, like
-                # EMPTY_CELL = 2
-                if state.board[x][y] == 2:
+                if board.cell_empty(x, y):
                     moves.append((x,y,0), (x,y,1))
         return moves
 
@@ -156,24 +158,25 @@ class Takuzu(Problem):
         # TODO
         pass
 
-    def h(self, node: Node):
-        """Função heuristica utilizada para a procura A*."""
-        # TODO
-        pass
-
-    # TODO: outros metodos da classe
-
-    def h(node: Node, action):
+    def h(self, node: Node, action):
         def impossible(node: Node, action):
+            """Verifica se executar a ação-argumento leva a um estado em que é
+            impossível completar o tabuleiro segundo as regras do jogo."""
             state = node.state
+            hyp_state = self.result(state, action)
             row, col, val = action
-            return board.count_column(col)[val] == ceil(state.size / 2) or \
-                    board.count_row(row)[val] == ceil(state.size / 2) or \
-                    result(node.state, action).board.check_3_straight(row, col)
+            cap = int(state.size // 2 + bool(state.size % 2)) # produces ceiling
+            return board.count_column(col)[val] == cap or \
+                    board.count_row(row)[val] == cap or \
+                    hyp_state.board.check_3_straight(row, col)
 
         def mandatory(node: Node, action):
+            """Verifica se executar a ação-argumento é obrigatório - ou seja,
+            se não é possível colocar outro valor na posição pretendida."""
             conj_action = (action[0], action[1], 1-action[2])
-            return not self.impossible(node, conj_action)
+            # antes estava _not_ impossible, mas tipo, só é obrigatório se
+            # o inverso for impossivel, certo?
+            return self.impossible(node, conj_action)
 
         def adjacency_tendency_row(node: Node, action):
             row, col, val = action
