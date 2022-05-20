@@ -89,7 +89,9 @@ class Board:
         de 3 valores iguais adjacentes - True indica que cria."""
         to_avoid = (val, val)
         def checker(line: int, possibilities: list):
-            if line == 0:
+            if self.size == 1:
+                return False
+            elif line == 0:
                 return possibilities[2] == to_avoid
             elif line == self.size - 1:
                 return possibilities[0] == to_avoid
