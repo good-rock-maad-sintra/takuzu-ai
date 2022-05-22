@@ -122,6 +122,10 @@ class Board:
     
     def transpose_board(self):
         return np.transpose(self.board)
+    
+    def fill_cell(self, row: int, col: int, val: int):
+        """Coloca um valor numa posição do tabuleiro."""
+        self.board[row][col] = val
 
     def __str__(self) -> str:
         return "\n".join(["\t".join(map(str, row)) for row in self.board])
@@ -134,9 +138,10 @@ class Takuzu(Problem):
 
     def actions(self, state: TakuzuState):
         moves = []
+        board = state.board
         # in the beginning of the moves list will always be the mandatory moves
-        for x in range(state.size):
-            for y in range(state.size):
+        for x in range(board.size):
+            for y in range(board.size):
                 if board.cell_empty(x, y):
                     possible_moves = [(x, y, 0), (x, y, 1)]
                     if self.mandatory(state, possible_moves[0]):
@@ -156,40 +161,41 @@ class Takuzu(Problem):
         das presentes na lista obtida pela execução de
         self.actions(state)."""
         x, y, val = action
-        # executing the action itself should be a method in board
-        # since, for abstraction's sake, Takuzu shouldn't know the internal representation
-        # of the board
-        new_board = state.board
-        new_board[x][y] = val
-        return TakuzuState(new_board)
+        updated_board = state.board.copy()
+        updated_board.fill_cell(x, y, val)
+        return TakuzuState(updated_board)
 
     def goal_test(self, state: TakuzuState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
         board = state.board
-        rows = [row for row in board]
-        columns = [column for column in board.transpose()]
+        rows = [tuple(row) for row in board.board]
+        columns = [tuple(column) for column in board.transpose_board()]
+        # and check if the board has an equal number of 0's and 1's (or off by 1, in case of odd sizes)
         return len(rows) == len(set(rows)) and \
-            len(columns) == len(set(columns)) # and check if the board has an equal number of 0's and 1's (or off by 1, in case of odd sizes)
-
+            len(columns) == len(set(columns))  and \
+            all(board.count_row(i) == (board.size, board.size) for i in range(board.size)) and \
+            all(board.count_column(i) == (board.size, board.size) for i in range(board.size))
+            
     def h(self, node: Node):
-        def adjacency_tendency_row(node: Node, action):
-            row, col, val = action
-            board = node.state.board
-            (x,y) = board.adjacent_horizontal_numbers(row, col)
-            if (x,y) == (2,2) or (x,y) == (0,1) or (x,y) == (1,0):
-                return 1/2
-            elif (x,y) == (1,2) or (x,y) == (2,1):
-                return 1
-            elif (x,y) == (0,2) or (x,y) == (2,0):
-                return 1
+        # def adjacency_tendency_row(node: Node, action):
+        #     row, col, val = action
+        #     board = node.state.board
+        #     (x,y) = board.adjacent_horizontal_numbers(row, col)
+        #     if (x,y) == (2,2) or (x,y) == (0,1) or (x,y) == (1,0):
+        #         return 1/2
+        #     elif (x,y) == (1,2) or (x,y) == (2,1):
+        #         return 1
+        #     elif (x,y) == (0,2) or (x,y) == (2,0):
+        #         return 1
 
-        moves = self.actions(node.state)
-        if self.mandatory(node, moves[0]):
-            return 0
-        elif self.impossible(node, moves[0]):
-            return 1
+        # moves = self.actions(node.state)
+        # if self.mandatory(node, moves[0]):
+        #     return 0
+        # elif self.impossible(node, moves[0]):
+        #     return 1
+        return 1
     
     def impossible(self, node: Node, action):
         """Verifica se executar a ação-argumento leva a um estado em que é
@@ -211,10 +217,9 @@ class Takuzu(Problem):
         return self.impossible(node, conj_action)
 
 if __name__ == "__main__":
-    print("cenas")
     board = Board.parse_instance_from_stdin()
     # print(board)
     takuzu = Takuzu(board)
     # obviamente depois a estratégia varia, e temos de testar várias
-    goal = depth_first_tree_search(takuzu)
+    goal = recursive_best_first_search(takuzu)
     print(goal.state.board)
