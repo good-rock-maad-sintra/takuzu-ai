@@ -18,6 +18,10 @@ from search import (
     recursive_best_first_search,
 )
 
+# "Util" function which isn't in utils.py (and we can't import math)
+def ceiling_division(dividend: int, divisor: int) -> int:
+    """ Returns the ceiling of dividend / divisor. """
+    return (dividend + divisor - 1) // divisor
 
 class TakuzuState:
     state_id = 0
@@ -33,76 +37,96 @@ class TakuzuState:
 
 class Board:
     """Representação interna de um tabuleiro de Takuzu."""
-    size = 0
-    board = []
-    EMPTY_CELL = 2
 
-    def __init__(self, size, board) -> None:
+    def __init__(self, board: list, size: int) -> None:
         self.size = size
         self.board = board
+        actions = self.empty_cells()
+        self.possible_actions = [(row, col, value) for row, col in actions for value in (0, 1)]
 
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
-        if not 0 <= row < self.size or not 0 <= col < self.size:
-            return None
         return self.board[row][col]
 
-    def get_row(self, row: int):
-        return self.board[row]
-
-    def get_column(self, col: int):
-        return [self.board[x][col] for x in range(self.size)]
+    def get_column_count(self, col: int) -> (int, int):
+        """Devolve o número de 0's e 1's na coluna especificada."""
+        count = [0, 0]
+        for row in range(self.size):
+            if self.board[row][col] == 0:
+                count[0] += 1
+            elif self.board[row][col] == 1:
+                count[1] += 1
+        return count
+    
+    def get_row_count(self, row: int) -> (int, int):
+        """Devolve o número de 0's e 1's na linha especificada."""
+        count = [0, 0]
+        for col in range(self.size):
+            if self.board[row][col] == 0:
+                count[0] += 1
+            elif self.board[row][col] == 1:
+                count[1] += 1
+        return count
+    
+    def fill_cell(self, row: int, col: int, value: int) -> None:
+        """Preenche uma célula com um valor."""
+        self.board[row][col] = value
+    
+    def empty_cells(self) -> list:
+        """Devolve uma lista com as posições vazias do tabuleiro."""
+        return [(row, col) for row in range(self.size) for col in range(self.size) if self.board[row][col] == 2]
 
     def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
-        if not 0 <= row < self.size or not 0 <= row < self.size:
-            return None
-        return (self.get_number(row-1, col), self.get_number(row+1, col))
+        adj = [None, None]
+        if row - 1 >= 0:
+            adj[0] = self.board[row - 1][col]
+        if row + 1 < self.size:
+            adj[1] = self.board[row + 1][col]
+        return tuple(adj)
 
     def adjacent_horizontal_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        if not 0 <= col < self.size or not 0 <= col < self.size:
-            return None
-        return (self.get_number(row, col-1), self.get_number(row, col+1))
-
-    def count_row(self, row: int) -> (int, int):
-        counts = [0, 0]
-        for y in range(self.size):
-            val = self.board[row][y]
-            if val in (0, 1):
-                counts[val] += 1
-        return tuple(counts)
-
-    def count_column(self, col: int) -> (int, int):
-        counts = [0, 0]
-        for x in range(self.size):
-            val = self.board[x][col]
-            if val in (0, 1):
-                counts[val] += 1
-        return tuple(counts)
+        adj = [None, None]
+        if col - 1 >= 0:
+            adj[0] = self.board[row][col - 1]
+        if col + 1 < self.size:
+            adj[1] = self.board[row][col + 1]
+        return tuple(adj)
     
     def check_3_straight(self, row: int, col: int, val: int) -> bool:
-        """Verifica se ao colocar um valor numa posição cria uma situação
-        de 3 valores iguais adjacentes - True indica que cria."""
+        """Checks whether the action creates a 3 in a row situation."""
         to_avoid = (val, val)
-        def checker(line: int, possibilities: list):
-            if self.size == 1:
+        def checker(line: int, possibilities: list) -> bool:
+            # Considering a line such as 1-0-2-1-0
+            if self.size < 3:
                 return False
             elif line == 0:
+                # would check (0, 2)
                 return possibilities[2] == to_avoid
             elif line == self.size - 1:
+                # would check (2, 1)
                 return possibilities[0] == to_avoid
-            return any(possibilities[i] == to_avoid for i in range(3))
+            return any(possibilities[i] == to_avoid for i in range(-1, 2))
         
-        vertical_adjacencies = [self.adjacent_vertical_numbers(row + i, col) for i in range(-1, 1)]
-        horizontal_adjacencies = [self.adjacent_horizontal_numbers(row, col + i) for i in range(-1, 1)]
+        vertical_adjacencies = [self.adjacent_vertical_numbers(row + i, col) for i in range(-1, 2)]
+        horizontal_adjacencies = [self.adjacent_horizontal_numbers(row, col + i) for i in range(-1, 2)]
         return checker(row, vertical_adjacencies) or checker(col, horizontal_adjacencies)
-
-    def cell_empty(self, row, col):
-        return self.board[row][col] == self.EMPTY_CELL
-
+    
+    def remove_actions(self, row: int, col: int) -> None:
+        """Remove as ações que envolvam as linha e coluna especificadas do
+        conjunto de ações possíveis."""
+        try:
+            self.possible_actions.remove((row, col, 0))
+        except ValueError:
+            pass
+        try:
+            self.possible_actions.remove((row, col, 1))
+        except ValueError:
+            pass
+    
     @staticmethod
     def parse_instance_from_stdin():
         """Lê o test do standard input (stdin) que é passado como argumento
@@ -118,17 +142,11 @@ class Board:
         board = []
         for line in sys.stdin.readlines():
             board.append(list(map(int, line.split())))
-        return Board(n, board)
+        return Board(board, n)
     
-    def transpose_board(self):
-        return np.transpose(self.board)
-    
-    def fill_cell(self, row: int, col: int, val: int):
-        """Coloca um valor numa posição do tabuleiro."""
-        self.board[row][col] = val
-
-    def __str__(self) -> str:
-        return "\n".join(["\t".join(map(str, row)) for row in self.board])
+    def __str__(self):
+        """Imprime o tabuleiro."""
+        return '\n'.join(['\t'.join(map(str, row)) for row in self.board])
 
 
 class Takuzu(Problem):
@@ -137,89 +155,96 @@ class Takuzu(Problem):
         self.initial = TakuzuState(board)
 
     def actions(self, state: TakuzuState):
-        moves = []
-        board = state.board
-        # in the beginning of the moves list will always be the mandatory moves
-        for x in range(board.size):
-            for y in range(board.size):
-                if board.cell_empty(x, y):
-                    possible_moves = [(x, y, 0), (x, y, 1)]
-                    if self.mandatory(state, possible_moves[0]):
-                        moves.insert(0, possible_moves[0])
-                    elif not self.impossible(state, possible_moves[0]):
-                        moves.append(possible_moves[0])
-                    
-                    if self.mandatory(state, possible_moves[1]):
-                        moves.insert(0, possible_moves[1])
-                    elif not self.impossible(state, possible_moves[1]):
-                        moves.append(possible_moves[1])                    
-        return moves
+        """Retorna uma lista de ações que podem ser executadas a
+        partir do estado passado como argumento."""
+        # ALSO, THE BOARD ITSELF SHOULD KEEP THE POSSIBLE ACTIONS (AND REMOVE THEM AS THEY'RE EXECUTED)
+        possible_actions = []
+        for action in state.board.possible_actions:
+            if not self.impossible(action, state.board):
+                possible_actions.append(action)
+        return possible_actions
 
     def result(self, state: TakuzuState, action):
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        x, y, val = action
-        updated_board = state.board.copy()
-        updated_board.fill_cell(x, y, val)
-        return TakuzuState(updated_board)
+        row, col, value = action
+        new_board = state.board # CHECK IF THIS IS A COPY OR IF CHANGES WILL CHANGE THE OTHER BOARDS
+        new_board.fill_cell(row, col, value)
+        new_board.remove_actions(row, col)
+        print("Previosly possible actions: ", state.board.possible_actions)
+        updated_actions = self.update_actions(new_board)
+        print("Updated actions: ", updated_actions)
+        new_board.possible_actions = updated_actions
+        return TakuzuState(new_board)
 
     def goal_test(self, state: TakuzuState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
-        board = state.board
-        rows = [tuple(row) for row in board.board]
-        columns = [tuple(column) for column in board.transpose_board()]
-        # and check if the board has an equal number of 0's and 1's (or off by 1, in case of odd sizes)
-        return len(rows) == len(set(rows)) and \
-            len(columns) == len(set(columns))  and \
-            all(board.count_row(i) == (board.size, board.size) for i in range(board.size)) and \
-            all(board.count_column(i) == (board.size, board.size) for i in range(board.size))
-            
+        # we reached a goal_state if there are no possible actions left - there are no cells with value 2
+        # TODO: check if this actually works, i'm not sure that when expanding a node
+        # the possible actions list is already empty, or if it only empties after the expansion
+        return len(state.board.possible_actions) == 0
+        
+
     def h(self, node: Node):
-        # def adjacency_tendency_row(node: Node, action):
-        #     row, col, val = action
-        #     board = node.state.board
-        #     (x,y) = board.adjacent_horizontal_numbers(row, col)
-        #     if (x,y) == (2,2) or (x,y) == (0,1) or (x,y) == (1,0):
-        #         return 1/2
-        #     elif (x,y) == (1,2) or (x,y) == (2,1):
-        #         return 1
-        #     elif (x,y) == (0,2) or (x,y) == (2,0):
-        #         return 1
-
-        # moves = self.actions(node.state)
-        # if self.mandatory(node, moves[0]):
+        """Função heuristica utilizada para a procura A*."""
+        # def calc_heuristic(size: int, counts: list) -> float:
+        #     zero_count, one_count = counts
+        #     return (size / 2 - zero_count) / (size - zero_count - one_count)
+        
+        # action = node.action
+        # board = node.state.board
+        # if self.impossible(action, board):
         #     return 0
-        # elif self.impossible(node, moves[0]):
+        # elif self.mandatory(action, board):
         #     return 1
-        return 1
-    
-    def impossible(self, node: Node, action):
-        """Verifica se executar a ação-argumento leva a um estado em que é
-        impossível completar o tabuleiro segundo as regras do jogo."""
-        state = node.state
-        hyp_state = self.result(state, action)
-        row, col, val = action
-        cap = int(state.size // 2 + bool(state.size % 2)) # produces ceiling
-        return board.count_column(col)[val] == cap or \
-                board.count_row(row)[val] == cap or \
-                hyp_state.board.check_3_straight(row, col)
+        # row, col, value = action
+        # row_count, col_count = board.get_row_count(row), board.get_col_count(col)
+        # return calc_heuristic(board.size, row_count) * calc_heuristic(board.size, col_count)
+        pass
 
-    def mandatory(self, node: Node, action):
-        """Verifica se executar a ação-argumento é obrigatório - ou seja,
-        se não é possível colocar outro valor na posição pretendida."""
-        conj_action = (action[0], action[1], 1-action[2])
-        # antes estava _not_ impossible, mas tipo, só é obrigatório se
-        # o inverso for impossivel, certo?
-        return self.impossible(node, conj_action)
+    # Aux Function(s?)
+
+    def impossible(self, action: tuple, board: Board) -> bool:
+        """Checks whether executing the action is impossible or not."""
+        # An action is impossible if it creates a 3 in a row situation, if
+        # the value count in the row or column where it's being inserted is greater than ceil(state.size // 2)
+        # or if it creates a situation where there are 2 equal rows or columns
+
+        # First: check for value count in the row or column where it's being inserted being greater than ceil(state.size // 2)
+        row, col, value = action
+        row_count, col_count = board.get_row_count(row), board.get_column_count(col)
+        ceiling = ceiling_division(board.size, 2)
+        if row_count[value] >= ceiling or col_count[value] >= ceiling:
+            return True
+        # Second: check if it creates a 3 in a row situation (either in the row or in the column where it'd be inserted)
+        return board.check_3_straight(row, col, value)
+        # Third: check if it creates a situation where there are 2 equal rows or columns (should we even check it here?)
+        # TODO: return board.check_2_equal_rows_or_columns(row, col, value)
+    
+    def mandatory(self, action: tuple, board: Board) -> bool:
+        """Checks whether the action is mandatory or not (it placing a value in
+        those coordinates will always have to happen, given the current
+        board configuration."""
+        row, col, value = action
+        return self.impossible((row, col, 1 - value), board)
+
+    def update_actions(self, board: Board) -> list:
+        """Updates the possible actions for the board."""
+        # FIXME: THIS IS WRONG, DOESN'T UPDATE THE BOARD ITSELF, ONLY A COPY OF IT
+        actions = []
+        for action in board.possible_actions:
+            print("Currently checking action: {} for board:\n{}".format(action, board))
+            if not self.impossible(action, board):
+                print("It was fine, adding it to the list")
+                actions.append(action)
+        return actions
 
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
-    # print(board)
     takuzu = Takuzu(board)
-    # obviamente depois a estratégia varia, e temos de testar várias
-    goal = recursive_best_first_search(takuzu)
+    goal = depth_first_tree_search(takuzu)
     print(goal.state.board)
