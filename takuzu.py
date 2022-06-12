@@ -18,6 +18,11 @@ from search import (
     recursive_best_first_search,
 )
 
+# "Util" function which isn't in utils.py (and we can't import math)
+def ceiling_division(dividend: int, divisor: int) -> int:
+    """Returns the ceiling of dividend / divisor."""
+    return (dividend + divisor - 1) // divisor
+
 
 class TakuzuState:
     state_id = 0
@@ -33,21 +38,24 @@ class TakuzuState:
         self.empty_cells = self.board.get_empty_cells_n()
         TakuzuState.state_id += 1
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.id == other.id
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self.id < other.id
 
 class Board:
     """Representação interna de um tabuleiro de Takuzu."""
-    size = 0
-    board = []
+
     EMPTY_CELL = 2
 
-    def __init__(self, size, board) -> None:
+    def __init__(self, board: list, size: int) -> None:
         self.size = size
         self.board = board
+        actions = self.empty_cells()
+        self.possible_actions = [
+            (row, col, value) for row, col in actions for value in (0, 1)
+        ]
 
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -55,11 +63,48 @@ class Board:
             return None
         return self.board[row][col]
 
-    def get_row(self, row: int):
-        return self.board[row]
+    def get_column_count(self, col: int) -> (int, int):
+        """Devolve o número de 0's e 1's na coluna especificada."""
+        count = [0, 0]
+        for row in range(self.size):
+            val = self.get_number(row, col)
+            if val == self.EMPTY_CELL:
+                continue
+            count[val] += 1
+        return count
 
-    def get_column(self, col: int):
-        return [self.board[x][col] for x in range(self.size)]
+    def get_row_count(self, row: int) -> (int, int):
+        """Devolve o número de 0's e 1's na linha especificada."""
+        count = [0, 0]
+        for col in range(self.size):
+            val = self.get_number(row, col)
+            if val == self.EMPTY_CELL:
+                continue
+            count[val] += 1
+        return count
+
+    def fill_cell(self, row: int, col: int, value: int) -> None:
+        """Preenche uma célula com um valor."""
+        list_board = list(self.board)
+        list_board[row] = list(self.board[row])
+        list_board[row][col] = value
+        list_board[row] = tuple(list_board[row])
+        self.board = tuple(list_board)
+        self.possible_actions.remove((row, col, value))
+        # FIXME: can't remove it, since something is wrong with the DFS
+        # try:
+        self.possible_actions.remove((row, col, 1 - value))
+        # except ValueError:
+        # pass
+
+    def empty_cells(self) -> list:
+        """Devolve uma lista com as posições vazias do tabuleiro."""
+        return [
+            (row, col)
+            for row in range(self.size)
+            for col in range(self.size)
+            if self.board[row][col] == self.EMPTY_CELL
+        ]
 
     def get_empty_cells_n(self):
         count = 0
@@ -72,52 +117,29 @@ class Board:
     def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
-        if not 0 <= row < self.size or not 0 <= row < self.size:
+        if not 0 <= row < self.size or not 0 <= col < self.size:
             return None
-        return (self.get_number(row-1, col), self.get_number(row+1, col))
+        return (self.get_number(row - 1, col), self.get_number(row + 1, col))
 
     def adjacent_horizontal_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        if not 0 <= col < self.size or not 0 <= col < self.size:
+        if not 0 <= row < self.size or not 0 <= col < self.size:
             return None
-        return (self.get_number(row, col-1), self.get_number(row, col+1))
+        return (self.get_number(row, col - 1), self.get_number(row, col + 1))
 
-    def count_row(self, row: int) -> (int, int):
-        counts = [0, 0]
-        for y in range(self.size):
-            val = self.get_number(row, y)
-            if val in (0, 1):
-                counts[val] += 1
-        return tuple(counts)
-
-    def count_column(self, col: int) -> (int, int):
-        counts = [0, 0]
-        for x in range(self.size):
-            val = self.get_number(x, col)
-            if val in (0, 1):
-                counts[val] += 1
-        return tuple(counts)
-    
     def check_3_straight(self, row: int, col: int, val: int) -> bool:
-        """Verifica se ao colocar um valor numa posição cria uma situação
-        de 3 valores iguais adjacentes - True indica que cria."""
+        """Checks whether the action creates a 3 in a row situation."""
         to_avoid = (val, val)
-        def checker(line: int, possibilities: list):
-            if self.size == 1:
-                return False
-            elif line == 0:
-                return possibilities[2] == to_avoid
-            elif line == self.size - 1:
-                return possibilities[0] == to_avoid
-            return any(possibilities[i] == to_avoid for i in range(3))
-        
-        vertical_adjacencies = [self.adjacent_vertical_numbers(row + i, col) for i in range(-1, 2)]
-        horizontal_adjacencies = [self.adjacent_horizontal_numbers(row, col + i) for i in range(-1, 2)]
-        return checker(row, vertical_adjacencies) or checker(col, horizontal_adjacencies)
-
-    def cell_empty(self, row, col):
-        return self.get_number(row, col) == self.EMPTY_CELL
+        vertical_adjacencies = [
+            self.adjacent_vertical_numbers(row + i, col) for i in range(-1, 2)
+        ]
+        horizontal_adjacencies = [
+            self.adjacent_horizontal_numbers(row, col + i) for i in range(-1, 2)
+        ]
+        return any(vertical_adjacencies[i] == to_avoid for i in range(0, 3)) or any(
+            horizontal_adjacencies[i] == to_avoid for i in range(0, 3)
+        )
 
     @staticmethod
     def parse_instance_from_stdin():
@@ -133,17 +155,15 @@ class Board:
         n = int(sys.stdin.readline())
         board = []
         for line in sys.stdin.readlines():
-            board.append(list(map(int, line.split())))
-        return Board(n, board)
-    
-    def transpose_board(self):
-        return np.transpose(self.board)
-    
-    def fill_cell(self, row: int, col: int, val: int):
-        """Coloca um valor numa posição do tabuleiro."""
-        self.board[row][col] = val
+            board.append(tuple(map(int, line.split())))
+        return Board(board, n)
 
-    def __str__(self) -> str:
+    # copy of the board
+    def __copy__(self):
+        return Board(self.board, self.size)
+
+    def __str__(self):
+        """Imprime o tabuleiro."""
         return "\n".join(["\t".join(map(str, row)) for row in self.board])
 
 
@@ -154,26 +174,24 @@ class Takuzu(Problem):
         self.moves = self.actions(self.initial)
 
     def actions(self, state: TakuzuState):
-        board = state.board
-        moves = []
-        for x in range(board.size):
-            for y in range(board.size):
-                if board.cell_empty(x,y):
-                    for k in range(2):
-                        if self.possible(state, (x,y,k)):
-                            moves.append((x,y,k))
-        print(moves)
-        return moves
+        """Retorna uma lista de ações que podem ser executadas a
+        partir do estado passado como argumento."""
+        possible_actions = []
+        for action in state.board.possible_actions:
+            if self.possible(action, state.board):
+                possible_actions.append(action)
+        return possible_actions
 
     def result(self, state: TakuzuState, action):
         """Retorna o estado resultante de executar a 'action' sobre
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        x, y, val = action
-        updated_board = Board(state.board.size, state.board.board)
-        updated_board.fill_cell(x, y, val)
-        return TakuzuState(updated_board)
+        row, col, value = action
+        new_board = state.board.__copy__()
+        new_board.fill_cell(row, col, value)
+        print("Board is now:\n{}".format(new_board))
+        return TakuzuState(new_board)
 
     def consistent_test(self, state: TakuzuState):
         #print(len(state.columns) == state.column_n and \
@@ -185,39 +203,54 @@ class Takuzu(Problem):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
-        print(state.empty_cells)
-        return state.empty_cells == 0 and self.consistent_test(state)
-            
-    def impossible(self, state: TakuzuState, action):
-        """Verifica se executar a ação-argumento leva a um estado em que é
-        impossível completar o tabuleiro segundo as regras do jogo."""
-        hyp_state = self.result(state, action)
-        row, col, val = action
-        cap = (state.board.size+1) // 2 # produces ceiling
-        ct_col = board.count_column(col)
-        ct_row = board.count_row(row)
-        return ct_col[val] > cap or ct_row[val] > cap or \
-                hyp_state.board.check_3_straight(row, col, val)
-
-    def possible(self, state: TakuzuState, action):
-        return not self.impossible(state, action)
-
-    def mandatory(self, state: TakuzuState, action):
-        """Verifica se executar a ação-argumento é obrigatório - ou seja,
-        se não é possível colocar outro valor na posição pretendida."""
-        conj_action = (action[0], action[1], 1-action[2])
-        return self.impossible(state, conj_action) and \
-                self.possible(state, action)
+        # we reached a goal_state if there are no possible actions left - there are no cells with value 2 (missing stuff)
+        return (
+            len(state.board.possible_actions) == 0
+            and len(state.board.empty_cells()) == 0
+        )
 
     def h(self, node: Node):
-        def adjacency_tendency_compute(adjacent_pair):
-            x, y = adjacent_pair
-            if (x,y) == (2,2) or (x,y) == (0,1) or (x,y) == (1,0):
-                return 1/2
-            elif (x,y) == (1,2) or (x,y) == (2,1):
-                return 1
-            elif (x,y) == (0,2) or (x,y) == (2,0):
-                return 0
+        """Função heuristica utilizada para a procura A*."""
+
+        def calc_heuristic(size: int, counts: list) -> float:
+            zero_count, one_count = counts
+            return (size / 2 - zero_count) / (size - zero_count - one_count)
+
+        action = node.action
+        board = node.state.board
+        if self.impossible(action, board):
+            return 0
+        elif self.mandatory(action, board):
+            return 1
+        row, col, _ = action
+        row_count, col_count = board.get_row_count(row), board.get_col_count(col)
+        return calc_heuristic(board.size, row_count) + calc_heuristic(
+            board.size, col_count
+        )
+
+    def impossible(self, action: tuple, board: Board) -> bool:
+        """Checks whether executing the action is impossible or not."""
+        row, col, value = action
+        row_count, col_count = board.get_row_count(row), board.get_column_count(col)
+        ceiling = ceiling_division(board.size, 2)
+        if row_count[value] >= ceiling or col_count[value] >= ceiling:
+            return True
+        return board.check_3_straight(row, col, value)
+        # TODO: return board.check_2_equal_rows_or_columns(row, col, value)
+
+    def possible(self, action: tuple, board: Board) -> bool:
+        """Checks whether executing the action is possible or not."""
+        return not self.impossible(action, board)
+
+    def mandatory(self, action: tuple, board: Board) -> bool:
+        """Checks whether the action is mandatory or not (it placing a value in
+        those coordinates will always have to happen, given the current
+        board configuration."""
+        row, col, value = action
+        return self.impossible((row, col, 1 - value), board) and self.possible(
+            (row, col, value), board
+        )
+
 
         def adjacency_tendency(node: Node, action):
             board = node.state.board
@@ -239,52 +272,7 @@ class Takuzu(Problem):
     
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
-    # print(board)
     takuzu = Takuzu(board)
-    # obviamente depois a estratégia varia, e temos de testar várias
     goal = depth_first_tree_search(takuzu)
-    if goal == None:
-        print('desagradavel')
-    else:
-        print(goal.state.board)
-
-"""
-    def backtrack(self):
-        (state, action) = self.decision_states.pop()
-        x, y, val = action
-        conj_action = (x, y, 1-val)
-        if possible(state, conj_action):
-            return result(state, conj_action)
-        return 
-
-    def decide(self, state: TakuzuState):
-        self.moves = self.actions(state)
-
-        if len(self.moves) == 0:
-            return None
-        else:
-            action = self.moves.pop()
-            # Action is not mandatory, thus we made a choice
-            if h(action) != 0:
-                self.decision_states.add((curr_state, action))
-            return action
-
-    def solve(self):
-        curr_state = self.initial
-
-        while not self.goal_test(curr_state):
-            # Check CSP consistency of current state
-            if not self.consistent_test(curr_state):
-                if len(self.decision_states) == 0:
-                # First decision state is inconsistent, thus problem isn't solvable
-                    return FAILURE
-                curr_state = self.backtrack(dec_state, action)
-                continue
-
-            # Decide which action to take
-            action = self.decide(curr_state)
-            if action != None:
-                curr_state = self.result(curr_state, action)
-
-        return curr_state
-"""
+    print("---")
+    print(goal.state.board)
