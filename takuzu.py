@@ -26,10 +26,16 @@ def ceiling_division(dividend: int, divisor: int) -> int:
 
 class TakuzuState:
     state_id = 0
+    column_n = 0
+    row_n = 0
+    empty_cells = 0
 
     def __init__(self, board):
         self.board = board
+        self.columns = set()
+        self.rows = set()
         self.id = TakuzuState.state_id
+        self.empty_cells = self.board.get_empty_cells_n()
         TakuzuState.state_id += 1
 
     def __eq__(self, other) -> bool:
@@ -37,7 +43,6 @@ class TakuzuState:
 
     def __lt__(self, other) -> bool:
         return self.id < other.id
-
 
 class Board:
     """Representação interna de um tabuleiro de Takuzu."""
@@ -101,6 +106,14 @@ class Board:
             if self.board[row][col] == self.EMPTY_CELL
         ]
 
+    def get_empty_cells_n(self):
+        count = 0
+        for x in range(self.size):
+            for y in range(self.size):
+                if self.cell_empty(x,y):
+                    count+=1
+        return count
+
     def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
@@ -158,6 +171,7 @@ class Takuzu(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
         self.initial = TakuzuState(board)
+        self.moves = self.actions(self.initial)
 
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
@@ -178,6 +192,12 @@ class Takuzu(Problem):
         new_board.fill_cell(row, col, value)
         print("Board is now:\n{}".format(new_board))
         return TakuzuState(new_board)
+
+    def consistent_test(self, state: TakuzuState):
+        #print(len(state.columns) == state.column_n and \
+        #        len(state.rows) == state.row_n)
+        return len(state.columns) == state.column_n and \
+                len(state.rows) == state.row_n
 
     def goal_test(self, state: TakuzuState):
         """Retorna True se e só se o estado passado como argumento é
@@ -232,6 +252,24 @@ class Takuzu(Problem):
         )
 
 
+        def adjacency_tendency(node: Node, action):
+            board = node.state.board
+            x, y, val = action
+            hor_adjacent = board.adjacent_horizontal_numbers(x, y)
+            ver_adjacent = board.adjacent_vertical_numbers(x, y)
+            return (adjacent_tendency_compute(node, hor_adjacent) + \
+                    adjacent_tendency_compute(node, hor_adjacent)) / 2
+
+        #def line_tendency(node: Node, action):
+            # TODO
+
+        moves = self.actions(node.state)
+        if self.mandatory(node, moves[0]):
+            return 0
+        elif self.impossible(node, moves[0]):
+            return 1
+        return 1
+    
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
