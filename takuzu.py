@@ -32,6 +32,9 @@ class TakuzuState:
         self.id = TakuzuState.state_id
         TakuzuState.state_id += 1
 
+    def __eq__(self, other) -> bool:
+        return self.id == other.id
+
     def __lt__(self, other):
         return self.id < other.id
 
@@ -39,14 +42,15 @@ class TakuzuState:
 class Board:
     """Representação interna de um tabuleiro de Takuzu."""
 
+    EMPTY_CELL = 2
+
     def __init__(self, board: list, size: int) -> None:
         self.size = size
         self.board = board
         actions = self.empty_cells()
         self.possible_actions = [
-            (row, col, value) for row, col in actions for value in [0, 1]
+            (row, col, value) for row, col in actions for value in (0, 1)
         ]
-        print("Just got these actions:", self.possible_actions)
 
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -56,31 +60,35 @@ class Board:
         """Devolve o número de 0's e 1's na coluna especificada."""
         count = [0, 0]
         for row in range(self.size):
-            if self.board[row][col] == 0:
-                count[0] += 1
-            elif self.board[row][col] == 1:
-                count[1] += 1
+            val = self.get_number(row, col)
+            if val == self.EMPTY_CELL:
+                continue
+            count[val] += 1
         return count
 
     def get_row_count(self, row: int) -> (int, int):
         """Devolve o número de 0's e 1's na linha especificada."""
         count = [0, 0]
         for col in range(self.size):
-            if self.board[row][col] == 0:
-                count[0] += 1
-            elif self.board[row][col] == 1:
-                count[1] += 1
+            val = self.get_number(row, col)
+            if val == self.EMPTY_CELL:
+                continue
+            count[val] += 1
         return count
 
     def fill_cell(self, row: int, col: int, value: int) -> None:
         """Preenche uma célula com um valor."""
-        self.board[row][col] = value
-        # self.possible_actions.remove((row, col, value))
+        list_board = list(self.board)
+        list_board[row] = list(self.board[row])
+        list_board[row][col] = value
+        list_board[row] = tuple(list_board[row])
+        self.board = tuple(list_board)
+        self.possible_actions.remove((row, col, value))
         # FIXME: can't remove it, since something is wrong with the DFS
-        try:
-            self.possible_actions.remove((row, col, 1 - value))
-        except ValueError:
-            pass
+        # try:
+        self.possible_actions.remove((row, col, 1 - value))
+        # except ValueError:
+        # pass
 
     def empty_cells(self) -> list:
         """Devolve uma lista com as posições vazias do tabuleiro."""
@@ -88,7 +96,7 @@ class Board:
             (row, col)
             for row in range(self.size)
             for col in range(self.size)
-            if self.board[row][col] == 2
+            if self.board[row][col] == self.EMPTY_CELL
         ]
 
     def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
@@ -151,7 +159,7 @@ class Board:
         n = int(sys.stdin.readline())
         board = []
         for line in sys.stdin.readlines():
-            board.append(list(map(int, line.split())))
+            board.append(tuple(map(int, line.split())))
         return Board(board, n)
 
     # copy of the board
@@ -183,13 +191,9 @@ class Takuzu(Problem):
         das presentes na lista obtida pela execução de
         self.actions(state)."""
         row, col, value = action
-        print("We still have these actions: ", state.board.possible_actions)
-        print("State's id: ", state.state_id)
-        new_board = Board(state.board.board, state.board.size)
+        new_board = state.board.__copy__()
         new_board.fill_cell(row, col, value)
-        updated_actions = self.update_actions(new_board)
-        new_board.possible_actions = updated_actions
-        print("Board is now:\n", new_board)
+        print("Board is now:\n{}".format(new_board))
         return TakuzuState(new_board)
 
     def goal_test(self, state: TakuzuState):
@@ -197,33 +201,33 @@ class Takuzu(Problem):
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
         # we reached a goal_state if there are no possible actions left - there are no cells with value 2 (missing stuff)
-        return len(state.board.possible_actions) == 0
+        return len(state.board.possible_actions) == 0 and not any(
+            state.board.board[row][col] == 2
+            for row in range(state.board.size)
+            for col in range(state.board.size)
+        )
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
-        # def calc_heuristic(size: int, counts: list) -> float:
-        #     zero_count, one_count = counts
-        #     return (size / 2 - zero_count) / (size - zero_count - one_count)
 
-        # action = node.action
-        # board = node.state.board
-        # if self.impossible(action, board):
-        #     return 0
-        # elif self.mandatory(action, board):
-        #     return 1
-        # row, col, value = action
-        # row_count, col_count = board.get_row_count(row), board.get_col_count(col)
-        # return calc_heuristic(board.size, row_count) * calc_heuristic(board.size, col_count)
-        pass
+        def calc_heuristic(size: int, counts: list) -> float:
+            zero_count, one_count = counts
+            return (size / 2 - zero_count) / (size - zero_count - one_count)
 
-    # Aux Function(s?)
+        action = node.action
+        board = node.state.board
+        if self.impossible(action, board):
+            return 0
+        elif self.mandatory(action, board):
+            return 1
+        row, col, _ = action
+        row_count, col_count = board.get_row_count(row), board.get_col_count(col)
+        return calc_heuristic(board.size, row_count) + calc_heuristic(
+            board.size, col_count
+        )
 
     def impossible(self, action: tuple, board: Board) -> bool:
         """Checks whether executing the action is impossible or not."""
-        # An action is impossible if it creates a 3 in a row situation, if
-        # the value count in the row or column where it's being inserted is greater than ceil(state.size // 2)
-        # or if it creates a situation where there are 2 equal rows or columns
-
         row, col, value = action
         row_count, col_count = board.get_row_count(row), board.get_column_count(col)
         ceiling = ceiling_division(board.size, 2)
@@ -237,15 +241,9 @@ class Takuzu(Problem):
         those coordinates will always have to happen, given the current
         board configuration."""
         row, col, value = action
-        return self.impossible((row, col, 1 - value), board)
-
-    def update_actions(self, board: Board) -> list:
-        """Updates the possible actions for the board."""
-        actions = []
-        for action in board.possible_actions:
-            if not self.impossible(action, board):
-                actions.append(action)
-        return actions
+        return self.impossible((row, col, 1 - value), board) and not self.impossible(
+            (row, col, value), board
+        )
 
 
 if __name__ == "__main__":
