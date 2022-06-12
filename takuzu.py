@@ -21,15 +21,23 @@ from search import (
 
 class TakuzuState:
     state_id = 0
+    column_n = 0
+    row_n = 0
+    empty_cells = 0
 
     def __init__(self, board):
         self.board = board
+        self.columns = set()
+        self.rows = set()
         self.id = TakuzuState.state_id
+        self.empty_cells = self.board.get_empty_cells_n()
         TakuzuState.state_id += 1
+
+    def __eq__(self, other):
+        return self.id == other.id
 
     def __lt__(self, other):
         return self.id < other.id
-
 
 class Board:
     """Representação interna de um tabuleiro de Takuzu."""
@@ -53,6 +61,14 @@ class Board:
     def get_column(self, col: int):
         return [self.board[x][col] for x in range(self.size)]
 
+    def get_empty_cells_n(self):
+        count = 0
+        for x in range(self.size):
+            for y in range(self.size):
+                if self.cell_empty(x,y):
+                    count+=1
+        return count
+
     def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
@@ -70,7 +86,7 @@ class Board:
     def count_row(self, row: int) -> (int, int):
         counts = [0, 0]
         for y in range(self.size):
-            val = self.board[row][y]
+            val = self.get_number(row, y)
             if val in (0, 1):
                 counts[val] += 1
         return tuple(counts)
@@ -78,7 +94,7 @@ class Board:
     def count_column(self, col: int) -> (int, int):
         counts = [0, 0]
         for x in range(self.size):
-            val = self.board[x][col]
+            val = self.get_number(x, col)
             if val in (0, 1):
                 counts[val] += 1
         return tuple(counts)
@@ -96,12 +112,12 @@ class Board:
                 return possibilities[0] == to_avoid
             return any(possibilities[i] == to_avoid for i in range(3))
         
-        vertical_adjacencies = [self.adjacent_vertical_numbers(row + i, col) for i in range(-1, 1)]
-        horizontal_adjacencies = [self.adjacent_horizontal_numbers(row, col + i) for i in range(-1, 1)]
+        vertical_adjacencies = [self.adjacent_vertical_numbers(row + i, col) for i in range(-1, 2)]
+        horizontal_adjacencies = [self.adjacent_horizontal_numbers(row, col + i) for i in range(-1, 2)]
         return checker(row, vertical_adjacencies) or checker(col, horizontal_adjacencies)
 
     def cell_empty(self, row, col):
-        return self.board[row][col] == self.EMPTY_CELL
+        return self.get_number(row, col) == self.EMPTY_CELL
 
     @staticmethod
     def parse_instance_from_stdin():
@@ -135,24 +151,18 @@ class Takuzu(Problem):
     def __init__(self, board: Board):
         """O construtor especifica o estado inicial."""
         self.initial = TakuzuState(board)
+        self.moves = self.actions(self.initial)
 
     def actions(self, state: TakuzuState):
-        moves = []
         board = state.board
-        # in the beginning of the moves list will always be the mandatory moves
+        moves = []
         for x in range(board.size):
             for y in range(board.size):
-                if board.cell_empty(x, y):
-                    possible_moves = [(x, y, 0), (x, y, 1)]
-                    if self.mandatory(state, possible_moves[0]):
-                        moves.insert(0, possible_moves[0])
-                    elif not self.impossible(state, possible_moves[0]):
-                        moves.append(possible_moves[0])
-                    
-                    if self.mandatory(state, possible_moves[1]):
-                        moves.insert(0, possible_moves[1])
-                    elif not self.impossible(state, possible_moves[1]):
-                        moves.append(possible_moves[1])                    
+                if board.cell_empty(x,y):
+                    for k in range(2):
+                        if self.possible(state, (x,y,k)):
+                            moves.append((x,y,k))
+        print(moves)
         return moves
 
     def result(self, state: TakuzuState, action):
@@ -161,65 +171,120 @@ class Takuzu(Problem):
         das presentes na lista obtida pela execução de
         self.actions(state)."""
         x, y, val = action
-        updated_board = state.board.copy()
+        updated_board = Board(state.board.size, state.board.board)
         updated_board.fill_cell(x, y, val)
         return TakuzuState(updated_board)
+
+    def consistent_test(self, state: TakuzuState):
+        #print(len(state.columns) == state.column_n and \
+        #        len(state.rows) == state.row_n)
+        return len(state.columns) == state.column_n and \
+                len(state.rows) == state.row_n
 
     def goal_test(self, state: TakuzuState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
-        board = state.board
-        rows = [tuple(row) for row in board.board]
-        columns = [tuple(column) for column in board.transpose_board()]
-        # and check if the board has an equal number of 0's and 1's (or off by 1, in case of odd sizes)
-        return len(rows) == len(set(rows)) and \
-            len(columns) == len(set(columns))  and \
-            all(board.count_row(i) == (board.size, board.size) for i in range(board.size)) and \
-            all(board.count_column(i) == (board.size, board.size) for i in range(board.size))
+        print(state.empty_cells)
+        return state.empty_cells == 0 and self.consistent_test(state)
             
-    def h(self, node: Node):
-        # def adjacency_tendency_row(node: Node, action):
-        #     row, col, val = action
-        #     board = node.state.board
-        #     (x,y) = board.adjacent_horizontal_numbers(row, col)
-        #     if (x,y) == (2,2) or (x,y) == (0,1) or (x,y) == (1,0):
-        #         return 1/2
-        #     elif (x,y) == (1,2) or (x,y) == (2,1):
-        #         return 1
-        #     elif (x,y) == (0,2) or (x,y) == (2,0):
-        #         return 1
-
-        # moves = self.actions(node.state)
-        # if self.mandatory(node, moves[0]):
-        #     return 0
-        # elif self.impossible(node, moves[0]):
-        #     return 1
-        return 1
-    
-    def impossible(self, node: Node, action):
+    def impossible(self, state: TakuzuState, action):
         """Verifica se executar a ação-argumento leva a um estado em que é
         impossível completar o tabuleiro segundo as regras do jogo."""
-        state = node.state
         hyp_state = self.result(state, action)
         row, col, val = action
-        cap = int(state.size // 2 + bool(state.size % 2)) # produces ceiling
-        return board.count_column(col)[val] == cap or \
-                board.count_row(row)[val] == cap or \
-                hyp_state.board.check_3_straight(row, col)
+        cap = (state.board.size+1) // 2 # produces ceiling
+        ct_col = board.count_column(col)
+        ct_row = board.count_row(row)
+        return ct_col[val] > cap or ct_row[val] > cap or \
+                hyp_state.board.check_3_straight(row, col, val)
 
-    def mandatory(self, node: Node, action):
+    def possible(self, state: TakuzuState, action):
+        return not self.impossible(state, action)
+
+    def mandatory(self, state: TakuzuState, action):
         """Verifica se executar a ação-argumento é obrigatório - ou seja,
         se não é possível colocar outro valor na posição pretendida."""
         conj_action = (action[0], action[1], 1-action[2])
-        # antes estava _not_ impossible, mas tipo, só é obrigatório se
-        # o inverso for impossivel, certo?
-        return self.impossible(node, conj_action)
+        return self.impossible(state, conj_action) and \
+                self.possible(state, action)
 
+    def h(self, node: Node):
+        def adjacency_tendency_compute(adjacent_pair):
+            x, y = adjacent_pair
+            if (x,y) == (2,2) or (x,y) == (0,1) or (x,y) == (1,0):
+                return 1/2
+            elif (x,y) == (1,2) or (x,y) == (2,1):
+                return 1
+            elif (x,y) == (0,2) or (x,y) == (2,0):
+                return 0
+
+        def adjacency_tendency(node: Node, action):
+            board = node.state.board
+            x, y, val = action
+            hor_adjacent = board.adjacent_horizontal_numbers(x, y)
+            ver_adjacent = board.adjacent_vertical_numbers(x, y)
+            return (adjacent_tendency_compute(node, hor_adjacent) + \
+                    adjacent_tendency_compute(node, hor_adjacent)) / 2
+
+        #def line_tendency(node: Node, action):
+            # TODO
+
+        moves = self.actions(node.state)
+        if self.mandatory(node, moves[0]):
+            return 0
+        elif self.impossible(node, moves[0]):
+            return 1
+        return 1
+    
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     # print(board)
     takuzu = Takuzu(board)
     # obviamente depois a estratégia varia, e temos de testar várias
-    goal = recursive_best_first_search(takuzu)
-    print(goal.state.board)
+    goal = depth_first_tree_search(takuzu)
+    if goal == None:
+        print('desagradavel')
+    else:
+        print(goal.state.board)
+
+"""
+    def backtrack(self):
+        (state, action) = self.decision_states.pop()
+        x, y, val = action
+        conj_action = (x, y, 1-val)
+        if possible(state, conj_action):
+            return result(state, conj_action)
+        return 
+
+    def decide(self, state: TakuzuState):
+        self.moves = self.actions(state)
+
+        if len(self.moves) == 0:
+            return None
+        else:
+            action = self.moves.pop()
+            # Action is not mandatory, thus we made a choice
+            if h(action) != 0:
+                self.decision_states.add((curr_state, action))
+            return action
+
+    def solve(self):
+        curr_state = self.initial
+
+        while not self.goal_test(curr_state):
+            # Check CSP consistency of current state
+            if not self.consistent_test(curr_state):
+                if len(self.decision_states) == 0:
+                # First decision state is inconsistent, thus problem isn't solvable
+                    return FAILURE
+                curr_state = self.backtrack(dec_state, action)
+                continue
+
+            # Decide which action to take
+            action = self.decide(curr_state)
+            if action != None:
+                curr_state = self.result(curr_state, action)
+
+        return curr_state
+"""
