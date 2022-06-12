@@ -35,7 +35,7 @@ class TakuzuState:
     def __eq__(self, other) -> bool:
         return self.id == other.id
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self.id < other.id
 
 
@@ -54,6 +54,8 @@ class Board:
 
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
+        if not 0 <= row < self.size or not 0 <= col < self.size:
+            return None
         return self.board[row][col]
 
     def get_column_count(self, col: int) -> (int, int):
@@ -102,47 +104,28 @@ class Board:
     def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
-        adj = [None, None]
-        if row - 1 >= 0:
-            adj[0] = self.board[row - 1][col]
-        if row + 1 < self.size:
-            adj[1] = self.board[row + 1][col]
-        return tuple(adj)
+        if not 0 <= row < self.size or not 0 <= col < self.size:
+            return None
+        return (self.get_number(row - 1, col), self.get_number(row + 1, col))
 
     def adjacent_horizontal_numbers(self, row: int, col: int) -> (int, int):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
-        adj = [None, None]
-        if col - 1 >= 0:
-            adj[0] = self.board[row][col - 1]
-        if col + 1 < self.size:
-            adj[1] = self.board[row][col + 1]
-        return tuple(adj)
+        if not 0 <= row < self.size or not 0 <= col < self.size:
+            return None
+        return (self.get_number(row, col - 1), self.get_number(row, col + 1))
 
     def check_3_straight(self, row: int, col: int, val: int) -> bool:
         """Checks whether the action creates a 3 in a row situation."""
         to_avoid = (val, val)
-
-        def checker(line: int, possibilities: list) -> bool:
-            # Considering a line such as 1-0-2-1-0
-            if self.size < 3:
-                return False
-            elif line == 0:
-                # would check (0, 2)
-                return possibilities[2] == to_avoid
-            elif line == self.size - 1:
-                # would check (2, 1)
-                return possibilities[0] == to_avoid
-            return any(possibilities[i] == to_avoid for i in range(0, 3))
-
         vertical_adjacencies = [
             self.adjacent_vertical_numbers(row + i, col) for i in range(-1, 2)
         ]
         horizontal_adjacencies = [
             self.adjacent_horizontal_numbers(row, col + i) for i in range(-1, 2)
         ]
-        return checker(row, vertical_adjacencies) or checker(
-            col, horizontal_adjacencies
+        return any(vertical_adjacencies[i] == to_avoid for i in range(0, 3)) or any(
+            horizontal_adjacencies[i] == to_avoid for i in range(0, 3)
         )
 
     @staticmethod
@@ -181,7 +164,7 @@ class Takuzu(Problem):
         partir do estado passado como argumento."""
         possible_actions = []
         for action in state.board.possible_actions:
-            if not self.impossible(action, state.board):
+            if self.possible(action, state.board):
                 possible_actions.append(action)
         return possible_actions
 
@@ -201,10 +184,9 @@ class Takuzu(Problem):
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
         # we reached a goal_state if there are no possible actions left - there are no cells with value 2 (missing stuff)
-        return len(state.board.possible_actions) == 0 and not any(
-            state.board.board[row][col] == 2
-            for row in range(state.board.size)
-            for col in range(state.board.size)
+        return (
+            len(state.board.possible_actions) == 0
+            and len(state.board.empty_cells()) == 0
         )
 
     def h(self, node: Node):
@@ -236,12 +218,16 @@ class Takuzu(Problem):
         return board.check_3_straight(row, col, value)
         # TODO: return board.check_2_equal_rows_or_columns(row, col, value)
 
+    def possible(self, action: tuple, board: Board) -> bool:
+        """Checks whether executing the action is possible or not."""
+        return not self.impossible(action, board)
+
     def mandatory(self, action: tuple, board: Board) -> bool:
         """Checks whether the action is mandatory or not (it placing a value in
         those coordinates will always have to happen, given the current
         board configuration."""
         row, col, value = action
-        return self.impossible((row, col, 1 - value), board) and not self.impossible(
+        return self.impossible((row, col, 1 - value), board) and self.possible(
             (row, col, value), board
         )
 
@@ -250,4 +236,5 @@ if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
     goal = depth_first_tree_search(takuzu)
+    print("---")
     print(goal.state.board)
