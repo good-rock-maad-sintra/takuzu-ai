@@ -24,6 +24,10 @@ def ceiling_division(dividend: int, divisor: int) -> int:
     return (dividend + divisor - 1) // divisor
 
 
+def tuple_assignment(row: int, col: int, value: int, t: tuple):
+    return t[0:row] + (t[row][0:col] + (value,) + t[row][col + 1 :],) + t[row + 1 :]
+
+
 class TakuzuState:
     state_id = 0
 
@@ -31,6 +35,10 @@ class TakuzuState:
         self.board = board
         self.id = TakuzuState.state_id
         TakuzuState.state_id += 1
+        actions = self.board.empty_cells()
+        self.possible_actions = [
+            (row, col, value) for row, col in actions for value in (0, 1)
+        ]
 
     def __eq__(self, other) -> bool:
         return self.id == other.id
@@ -44,13 +52,9 @@ class Board:
 
     EMPTY_CELL = 2
 
-    def __init__(self, board: list, size: int) -> None:
+    def __init__(self, board: tuple, size: int) -> None:
         self.size = size
         self.board = board
-        actions = self.empty_cells()
-        self.possible_actions = [
-            (row, col, value) for row, col in actions for value in (0, 1)
-        ]
 
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -78,19 +82,10 @@ class Board:
             count[val] += 1
         return count
 
-    def fill_cell(self, row: int, col: int, value: int) -> None:
+    def fill_cell(self, row: int, col: int, value: int):
         """Preenche uma célula com um valor."""
-        list_board = list(self.board)
-        list_board[row] = list(self.board[row])
-        list_board[row][col] = value
-        list_board[row] = tuple(list_board[row])
-        self.board = tuple(list_board)
-        self.possible_actions.remove((row, col, value))
-        # FIXME: can't remove it, since something is wrong with the DFS
-        # try:
-        self.possible_actions.remove((row, col, 1 - value))
-        # except ValueError:
-        # pass
+        aux = tuple_assignment(row, col, value, self.board)
+        return Board(aux, self.size)
 
     def empty_cells(self) -> list:
         """Devolve uma lista com as posições vazias do tabuleiro."""
@@ -140,9 +135,9 @@ class Board:
             > stdin.readline()
         """
         n = int(sys.stdin.readline())
-        board = []
+        board = ()
         for line in sys.stdin.readlines():
-            board.append(tuple(map(int, line.split())))
+            board += (tuple(map(int, line.split())),)
         return Board(board, n)
 
     # copy of the board
@@ -163,7 +158,7 @@ class Takuzu(Problem):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
         possible_actions = []
-        for action in state.board.possible_actions:
+        for action in state.possible_actions:
             if self.mandatory(action, state.board):
                 possible_actions.insert(0, action)
             elif self.possible(action, state.board):
@@ -176,8 +171,7 @@ class Takuzu(Problem):
         das presentes na lista obtida pela execução de
         self.actions(state)."""
         row, col, value = action
-        new_board = state.board.__copy__()
-        new_board.fill_cell(row, col, value)
+        new_board = state.board.fill_cell(row, col, value)
         print("Board is now:\n{}".format(new_board))
         return TakuzuState(new_board)
 
@@ -186,7 +180,7 @@ class Takuzu(Problem):
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
         # we reached a goal_state if there are no possible actions left - there are no cells with value 2 (missing stuff)
-        return len(state.board.possible_actions) == 0
+        return len(state.possible_actions) == 0
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
