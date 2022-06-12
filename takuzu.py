@@ -21,6 +21,7 @@ from search import (
 # TODO: remove this
 from time import sleep
 
+
 # "Util" function which isn't in utils.py (and we can't import math)
 def ceiling_division(dividend: int, divisor: int) -> int:
     """Returns the ceiling of dividend / divisor."""
@@ -37,9 +38,10 @@ class TakuzuState:
     def __init__(self, board, possible_actions=None, action=None):
         self.board = board
         self.id = TakuzuState.state_id
+        self.action = action
         TakuzuState.state_id += 1
-        actions = self.board.empty_cells()
         if possible_actions is None:
+            actions = self.board.empty_cells()
             self.possible_actions = [
                 (row, col, value) for row, col in actions for value in (0, 1)
             ]
@@ -167,13 +169,13 @@ class Takuzu(Problem):
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        possible_actions = []
         for action in state.possible_actions:
-            if self.mandatory(action, state.board):
-                possible_actions.insert(0, action)
-            elif self.possible(action, state.board):
-                possible_actions.append(action)
-        return possible_actions
+            if self.possible(action, state.board):
+                row, col, val = action
+                if self.possible((row, col, 1 - val), state.board):
+                    return [action, (row, col, 1 - val)]
+                return [action]
+        return []
 
     def result(self, state: TakuzuState, action):
         """Retorna o estado resultante de executar a 'action' sobre
@@ -181,10 +183,7 @@ class Takuzu(Problem):
         das presentes na lista obtida pela execução de
         self.actions(state)."""
         row, col, value = action
-        # sleep(1)
         new_board = state.board.fill_cell(row, col, value)
-        print("Board is now:\n{}".format(new_board))
-        print("Possible actions (before): {}".format(state.possible_actions))
         return TakuzuState(new_board, state.possible_actions, action)
 
     def goal_test(self, state: TakuzuState):
@@ -192,6 +191,10 @@ class Takuzu(Problem):
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
         # we reached a goal_state if there are no possible actions left - there are no cells with value 2 (missing stuff)
+        print("Board is currently:\n{}".format(state.board))
+        print("Possible actions: {}".format(self.actions(state)))
+        print("The action executed to get to this was: {}".format(state.action))
+        # sleep(2)
         return len(state.possible_actions) == 0
 
     def h(self, node: Node):
