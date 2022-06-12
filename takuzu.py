@@ -18,6 +18,9 @@ from search import (
     recursive_best_first_search,
 )
 
+# TODO: remove this
+from time import sleep
+
 # "Util" function which isn't in utils.py (and we can't import math)
 def ceiling_division(dividend: int, divisor: int) -> int:
     """Returns the ceiling of dividend / divisor."""
@@ -31,14 +34,20 @@ def tuple_assignment(row: int, col: int, value: int, t: tuple):
 class TakuzuState:
     state_id = 0
 
-    def __init__(self, board):
+    def __init__(self, board, possible_actions=None, action=None):
         self.board = board
         self.id = TakuzuState.state_id
         TakuzuState.state_id += 1
         actions = self.board.empty_cells()
-        self.possible_actions = [
-            (row, col, value) for row, col in actions for value in (0, 1)
-        ]
+        if possible_actions is None:
+            self.possible_actions = [
+                (row, col, value) for row, col in actions for value in (0, 1)
+            ]
+        else:
+            row, col, _ = action
+            self.possible_actions = possible_actions.copy()
+            self.possible_actions.remove((row, col, 0))
+            self.possible_actions.remove((row, col, 1))
 
     def __eq__(self, other) -> bool:
         return self.id == other.id
@@ -62,7 +71,7 @@ class Board:
             return None
         return self.board[row][col]
 
-    def get_column_count(self, col: int) -> (int, int):
+    def get_column_count(self, col: int):
         """Devolve o número de 0's e 1's na coluna especificada."""
         count = [0, 0]
         for row in range(self.size):
@@ -72,7 +81,7 @@ class Board:
             count[val] += 1
         return count
 
-    def get_row_count(self, row: int) -> (int, int):
+    def get_row_count(self, row: int):
         """Devolve o número de 0's e 1's na linha especificada."""
         count = [0, 0]
         for col in range(self.size):
@@ -96,14 +105,14 @@ class Board:
             if self.board[row][col] == self.EMPTY_CELL
         ]
 
-    def adjacent_vertical_numbers(self, row: int, col: int) -> (int, int):
+    def adjacent_vertical_numbers(self, row: int, col: int):
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
         if not 0 <= row < self.size or not 0 <= col < self.size:
             return None
         return (self.get_number(row - 1, col), self.get_number(row + 1, col))
 
-    def adjacent_horizontal_numbers(self, row: int, col: int) -> (int, int):
+    def adjacent_horizontal_numbers(self, row: int, col: int):
         """Devolve os valores imediatamente à esquerda e à direita,
         respectivamente."""
         if not 0 <= row < self.size or not 0 <= col < self.size:
@@ -114,13 +123,18 @@ class Board:
         """Checks whether the action creates a 3 in a row situation."""
         to_avoid = (val, val)
         vertical_adjacencies = [
-            self.adjacent_vertical_numbers(row + i, col) for i in range(-1, 2)
+            (self.get_number(row - 2, col), self.get_number(row - 1, col)),
+            self.adjacent_vertical_numbers(row, col),
+            (self.get_number(row + 1, col), self.get_number(row + 2, col)),
         ]
         horizontal_adjacencies = [
-            self.adjacent_horizontal_numbers(row, col + i) for i in range(-1, 2)
+            (self.get_number(row, col - 2), self.get_number(row, col - 1)),
+            self.adjacent_horizontal_numbers(row, col),
+            (self.get_number(row, col + 1), self.get_number(row, col + 2)),
         ]
-        return any(vertical_adjacencies[i] == to_avoid for i in range(0, 3)) or any(
-            horizontal_adjacencies[i] == to_avoid for i in range(0, 3)
+        return any(
+            (vertical_adjacencies[i] == to_avoid or horizontal_adjacencies == to_avoid)
+            for i in range(0, 3)
         )
 
     @staticmethod
@@ -139,10 +153,6 @@ class Board:
         for line in sys.stdin.readlines():
             board += (tuple(map(int, line.split())),)
         return Board(board, n)
-
-    # copy of the board
-    def __copy__(self):
-        return Board(self.board, self.size)
 
     def __str__(self):
         """Imprime o tabuleiro."""
@@ -171,9 +181,11 @@ class Takuzu(Problem):
         das presentes na lista obtida pela execução de
         self.actions(state)."""
         row, col, value = action
+        # sleep(1)
         new_board = state.board.fill_cell(row, col, value)
         print("Board is now:\n{}".format(new_board))
-        return TakuzuState(new_board)
+        print("Possible actions (before): {}".format(state.possible_actions))
+        return TakuzuState(new_board, state.possible_actions, action)
 
     def goal_test(self, state: TakuzuState):
         """Retorna True se e só se o estado passado como argumento é
