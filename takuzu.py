@@ -49,7 +49,6 @@ class TakuzuState:
                 self.mandatory_actions.remove(self.action)
             if self.action in self.possible_actions:
                 self.possible_actions.remove(self.action)
-        #print('Geração:', self.possible_actions)
         self.id = TakuzuState.state_id
         TakuzuState.state_id += 1
 
@@ -171,6 +170,7 @@ class Takuzu(Problem):
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
+        print("ENTERING ACTIONS")
         if state.action == None:
             for x,y in state.board.empty_cells():
                 for val in range(2):
@@ -180,6 +180,8 @@ class Takuzu(Problem):
                     elif self.possible(action, state.board):
                         state.possible_actions.append(action)
         else:
+            print('Possible actions before:', state.possible_actions)
+            print('Mandatory actions before:', state.mandatory_actions)
             new_mand_actions = []
             for action in state.mandatory_actions:
                 if self.possible(action, state.board):
@@ -187,18 +189,11 @@ class Takuzu(Problem):
                 else:
                     return []
             new_poss_actions = []
-            #if len(state.possible_actions) == 8:
-            #    print()
-            #    print('!!!!!!!!!!!!!!!!!!!!'*3)
-            #    print()
-            #    print('!!!!!!!!!!!!!!!!!!!!'*3)
-            #    print()
-            #print('Possible actions before:', state.possible_actions)
-            #print(state.board)
             for action in state.possible_actions:
                 if self.impossible(action, state.board):
                     conj_action = (action[0], action[1], 1-action[2])
-                    if self.impossible(conj_action, state.board):
+                    if self.impossible(conj_action, state.board) and \
+                            (action[0], action[1]) in state.board.empty_cells():
                         return []
                 elif self.mandatory(action, state.board):
                     new_mand_actions.append(action)
@@ -207,12 +202,13 @@ class Takuzu(Problem):
 
             state.mandatory_actions = new_mand_actions
             state.possible_actions = new_poss_actions
-            #print('Possible actions after:', state.possible_actions)
+            print('Mandatory actions after:', state.mandatory_actions)
+            print('Possible actions after:', state.possible_actions)
 
         if len(state.mandatory_actions) > 0:
             return state.mandatory_actions[:1]
         else:
-            return state.possible_actions
+            return state.possible_actions[:1]
 
     def result(self, state: TakuzuState, action):
         """Retorna o estado resultante de executar a 'action' sobre
@@ -227,7 +223,6 @@ class Takuzu(Problem):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
-        # we reached a goal_state if there are no possible actions left - there are no cells with value 2 (missing stuff)
         print("Doing action: {}".format(state.action))
         print("Board is currently:\n{}".format(state.board))
         print("Possible actions: {}".format(state.possible_actions))
@@ -259,7 +254,6 @@ class Takuzu(Problem):
         """Checks whether executing the action is impossible or not."""
         row, col, value = action
         if board.get_number(row, col) != board.EMPTY_CELL:
-            print('YOOOOOOO:', action)
             return True
         if board.check_3_straight(row, col, value):
             return True
@@ -286,7 +280,7 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = astar_search(takuzu)
+    goal = depth_first_tree_search(takuzu)
     print("---")
     if goal:
         print(goal.state.board)
