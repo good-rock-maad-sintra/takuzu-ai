@@ -18,6 +18,9 @@ from search import (
     recursive_best_first_search,
 )
 
+def debug(state):
+    print("Doing action: {}".format(state.action))
+    print("Board is currently:\n{}".format(state.board))
 
 # "Util" function which isn't in utils.py (and we can't import math)
 def ceiling_division(dividend: int, divisor: int) -> int:
@@ -237,6 +240,7 @@ class Takuzu(Problem):
                     return [action]
                 else:
                     return []
+
             new_poss_actions = ()
             for action in state.possible_actions:
                 row, col, value = action
@@ -269,10 +273,7 @@ class Takuzu(Problem):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
-        #print("Doing action: {}".format(state.action))
-        #print("Board is currently:\n{}".format(state.board))
-        # print("Possible actions: {}".format(state.possible_actions))
-        # print("Mandatory actions: {}".format(state.mandatory_actions))
+        #debug(state)
         return len(state.board.empty_cells()) == 0
 
     def h(self, node: Node):
