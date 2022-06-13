@@ -170,6 +170,16 @@ class Takuzu(Problem):
         ]
         state.actions = actions
         return actions
+        """
+        mandatory_actions = []
+        possible_actions = []
+        for action in state.possible_actions:
+            if self.mandatory(action, state.board):
+                mandatory_actions.append(action)
+            elif self.possible(action, state.board):
+                possible_actions.append(action)
+        return mandatory_actions if mandatory_actions != [] else possible_actions
+        """
 
     def result(self, state: TakuzuState, action):
         """Retorna o estado resultante de executar a 'action' sobre
