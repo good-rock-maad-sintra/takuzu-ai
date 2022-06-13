@@ -45,6 +45,11 @@ class TakuzuState:
         else:
             self.mandatory_actions = parent_mandatory_actions
             self.possible_actions = parent_possible_actions
+            if self.action in self.mandatory_actions:
+                self.mandatory_actions.remove(self.action)
+            if self.action in self.possible_actions:
+                self.possible_actions.remove(self.action)
+        #print('Geração:', self.possible_actions)
         self.id = TakuzuState.state_id
         TakuzuState.state_id += 1
 
@@ -175,22 +180,34 @@ class Takuzu(Problem):
                     elif self.possible(action, state.board):
                         state.possible_actions.append(action)
         else:
+            new_mand_actions = []
             for action in state.mandatory_actions:
-                if action == state.action:
-                    state.mandatory_actions.remove(action)
-                elif self.impossible(action, state.board):
+                if self.possible(action, state.board):
+                    new_mand_actions.append(action)
+                else:
                     return []
+            new_poss_actions = []
+            #if len(state.possible_actions) == 8:
+            #    print()
+            #    print('!!!!!!!!!!!!!!!!!!!!'*3)
+            #    print()
+            #    print('!!!!!!!!!!!!!!!!!!!!'*3)
+            #    print()
+            #print('Possible actions before:', state.possible_actions)
+            #print(state.board)
             for action in state.possible_actions:
-                if action == state.action:
-                    state.possible_actions.remove(action)
-                elif self.impossible(action, state.board):
+                if self.impossible(action, state.board):
                     conj_action = (action[0], action[1], 1-action[2])
                     if self.impossible(conj_action, state.board):
                         return []
-                    state.possible_actions.remove(action)
                 elif self.mandatory(action, state.board):
-                    state.possible_actions.remove(action)
-                    state.mandatory_actions.append(action)
+                    new_mand_actions.append(action)
+                else:
+                    new_poss_actions.append(action)
+
+            state.mandatory_actions = new_mand_actions
+            state.possible_actions = new_poss_actions
+            #print('Possible actions after:', state.possible_actions)
 
         if len(state.mandatory_actions) > 0:
             return state.mandatory_actions[:1]
@@ -213,7 +230,8 @@ class Takuzu(Problem):
         # we reached a goal_state if there are no possible actions left - there are no cells with value 2 (missing stuff)
         print("Doing action: {}".format(state.action))
         print("Board is currently:\n{}".format(state.board))
-        print("Possible actions: {}".format(self.actions(state)))
+        print("Possible actions: {}".format(state.possible_actions))
+        print("Mandatory actions: {}".format(state.mandatory_actions))
         return len(state.board.empty_cells()) == 0
 
     def h(self, node: Node):
@@ -241,6 +259,7 @@ class Takuzu(Problem):
         """Checks whether executing the action is impossible or not."""
         row, col, value = action
         if board.get_number(row, col) != board.EMPTY_CELL:
+            print('YOOOOOOO:', action)
             return True
         if board.check_3_straight(row, col, value):
             return True
