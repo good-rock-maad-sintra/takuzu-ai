@@ -42,23 +42,19 @@ class TakuzuState:
         self.action = action
 
         if self.action is None:
-            self.mandatory_actions = ()
-            self.possible_actions = ()
+            self.mandatory_actions = set()
+            self.possible_actions = set()
             self.columns = set()
             self.rows = set()
             for x in range(self.board.size):
                 self.add_binary_lines(x, x)
         else:
-            self.mandatory_actions = parent_mandatory_actions
-            self.possible_actions = parent_possible_actions
+            self.mandatory_actions = parent_mandatory_actions.copy()
+            self.possible_actions = parent_possible_actions.copy()
             if self.action in self.mandatory_actions:
-                self.mandatory_actions = tuple(
-                    filter(lambda x: x != self.action, self.mandatory_actions)
-                )
-            if self.action in self.possible_actions:
-                self.possible_actions = tuple(
-                    filter(lambda x: x != self.action, self.possible_actions)
-                )
+                self.mandatory_actions.remove(self.action)
+            elif self.action in self.possible_actions:
+                self.possible_actions.remove(self.action)
             self.rows = parent_rows.copy()
             self.columns = parent_columns.copy()
             row, col, _ = self.action
@@ -119,10 +115,10 @@ class Board:
         return count
 
     def full_check(self, count: tuple):
-        return count[0]+count[1] == self.size
+        return count[0] + count[1] == self.size
 
     def almost_full_check(self, count: tuple):
-        return count[0]+count[1] == self.size-1
+        return count[0] + count[1] == self.size - 1
 
     def get_bin_row(self, row: int, action=None):
         res = 0b0
@@ -230,18 +226,18 @@ class Takuzu(Problem):
                 for val in range(2):
                     action = (x,y,val)
                     if self.mandatory(action, state):
-                        state.mandatory_actions += (action, )
+                        state.mandatory_actions.add(action)
                     elif self.possible(action, state):
-                        state.possible_actions += (action, )
+                        state.possible_actions.add(action)
         else:
-            new_mand_actions = ()
+            new_mand_actions = set()
             for action in state.mandatory_actions:
                 if self.possible(action, state):
                     return [action]
                 else:
                     return []
 
-            new_poss_actions = ()
+            new_poss_actions = set()
             for action in state.possible_actions:
                 row, col, value = action
                 conj_action = (row, col, 1 - value)
@@ -249,15 +245,15 @@ class Takuzu(Problem):
                     continue
 
                 if self.mandatory(action, state):
-                    new_mand_actions += (action, )
+                    new_mand_actions.add(action)
                 elif self.possible(action, state):
-                    new_poss_actions += (action, )
+                    new_poss_actions.add(action)
 
             state.mandatory_actions = new_mand_actions
             state.possible_actions = new_poss_actions
 
         if len(state.mandatory_actions) > 0:
-            return list(state.mandatory_actions[:1])
+            return [state.mandatory_actions.pop()]
         return list(state.possible_actions)
 
     def result(self, state: TakuzuState, action):
