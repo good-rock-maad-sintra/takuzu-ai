@@ -9,7 +9,6 @@ files=$(ls testes-takuzu/ | grep "^input_")
 
 for file in $files
 do
-  rm /tmp/takuzu.out
   python takuzu.py < testes-takuzu/$file > /tmp/takuzu.out
   output=$(cat /tmp/takuzu.out)
   output_file=$(echo $file | sed 's/input/output/')
@@ -20,6 +19,6 @@ do
   else
     echo -e "\e[31mTest $file FAILED\e[0m"
     # diff between /tmp/takuzu.out and testes-takuzu/$output_file
-    diff --color /tmp/takuzu.out testes-takuzu/$output_file
+    colordiff -u testes-takuzu/$output_file /tmp/takuzu.out
   fi
 done
