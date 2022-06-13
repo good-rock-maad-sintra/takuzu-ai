@@ -36,16 +36,22 @@ class TakuzuState:
     state_id = 0
     action = None
 
-    def __init__(self, board, parent_actions=None, action=None):
+    def __init__(self, board, parent_mandatory_actions=None, \
+            parent_possible_actions=None, action=None):
         self.board = board
         self.action = action
         if self.action is None:
-            self.actions = [
+            self.mandatory_actions = [
+                (row, col, value) for row, col in self.board.empty_cells()
+                        for value in (0, 1)
+            ]
+            self.possible_actions = [
                 (row, col, value) for row, col in self.board.empty_cells()
                         for value in (0, 1)
             ]
         else:
-            self.actions = parent_actions
+            self.mandatory_actions = parent_mandatory_actions
+            self.possible_actions = parent_possible_actions
         self.id = TakuzuState.state_id
         TakuzuState.state_id += 1
 
@@ -164,22 +170,20 @@ class Takuzu(Problem):
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        actions = [
-            action for action in state.actions \
-                    if self.possible(action, state.board)
-        ]
-        state.actions = actions
-        return actions
-        """
-        mandatory_actions = []
-        possible_actions = []
+        for action in state.mandatory_actions:
+            if not self.mandatory(action, state.board):
+                state.mandatory_actions.remove(action)
         for action in state.possible_actions:
+            if self.impossible(action, state.board):
+                state.possible_actions.remove(action)
             if self.mandatory(action, state.board):
-                mandatory_actions.append(action)
-            elif self.possible(action, state.board):
-                possible_actions.append(action)
-        return mandatory_actions if mandatory_actions != [] else possible_actions
-        """
+                state.mandatory_actions.append(action)
+                state.possible_actions.remove(action)
+
+        if len(state.mandatory_actions) > 0:
+            return state.mandatory_actions[:1]
+        else:
+            return state.possible_actions
 
     def result(self, state: TakuzuState, action):
         """Retorna o estado resultante de executar a 'action' sobre
@@ -188,7 +192,7 @@ class Takuzu(Problem):
         self.actions(state)."""
         row, col, value = action
         new_board = state.board.fill_cell(row, col, value)
-        return TakuzuState(new_board, state.actions, action)
+        return TakuzuState(new_board, state.mandatory_actions, state.possible_actions, action)
 
     def goal_test(self, state: TakuzuState):
         """Retorna True se e só se o estado passado como argumento é
@@ -254,4 +258,7 @@ if __name__ == "__main__":
     print(board.empty_cells())
     goal = depth_first_tree_search(takuzu)
     print("---")
-    print(goal.state.board)
+    if goal:
+        print(goal.state.board)
+    else:
+        print('No goal')
