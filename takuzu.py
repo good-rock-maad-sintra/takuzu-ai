@@ -52,12 +52,8 @@ class TakuzuState:
                 if self.board.full_check(self.board.get_col_count(x)):
                     self.columns.add(self.board.get_bin_col(x))
         else:
-            self.mandatory_actions = parent_mandatory_actions.copy()
-            self.possible_actions = parent_possible_actions.copy()
-            if self.action in self.mandatory_actions:
-                self.mandatory_actions.remove(self.action)
-            elif self.action in self.possible_actions:
-                self.possible_actions.remove(self.action)
+            self.mandatory_actions = parent_mandatory_actions
+            self.possible_actions = parent_possible_actions
 
             self.rows = parent_rows.copy()
             self.columns = parent_columns.copy()
@@ -231,6 +227,13 @@ class Takuzu(Problem):
                     elif self.possible(action, state):
                         state.possible_actions.add(action)
         else:
+            state.mandatory_actions = state.mandatory_actions.copy()
+            state.possible_actions = state.possible_actions.copy()
+            if state.action in state.mandatory_actions:
+                state.mandatory_actions.remove(state.action)
+            elif state.action in state.possible_actions:
+                state.possible_actions.remove(state.action)
+
             new_mand_actions = set()
             for action in state.mandatory_actions:
                 if self.possible(action, state):
