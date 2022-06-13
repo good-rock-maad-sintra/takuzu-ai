@@ -44,10 +44,7 @@ class TakuzuState:
             self.columns = set()
             self.rows = set()
             for x in range(self.board.size):
-                if board.full_check(self.board.get_row_count(x)):
-                    self.rows.add(board.get_bin_row(x))
-                if board.full_check(self.board.get_col_count(x)):
-                    self.columns.add(board.get_bin_col(x))
+                self.add_binary_lines(x, x)
         else:
             self.mandatory_actions = parent_mandatory_actions
             self.possible_actions = parent_possible_actions
@@ -61,14 +58,17 @@ class TakuzuState:
                 )
             self.rows = parent_rows.copy()
             self.columns = parent_columns.copy()
-            x, y, _ = self.action
-            if board.full_check(self.board.get_row_count(x)):
-                self.rows.add(board.get_bin_row(x))
-            if board.full_check(self.board.get_col_count(y)):
-                self.columns.add(board.get_bin_col(y))
+            row, col, _ = self.action
+            self.add_binary_lines(row, col)
 
         self.id = TakuzuState.state_id
         TakuzuState.state_id += 1
+    
+    def add_binary_lines(self, row: int, col: int) -> None:
+        if self.board.full_check(self.board.get_row_count(row)):
+            self.rows.add(self.board.get_bin_row(row))
+        if self.board.full_check(self.board.get_col_count(col)):
+            self.columns.add(self.board.get_bin_col(col))
 
     def __eq__(self, other) -> bool:
         return self.id == other.id
