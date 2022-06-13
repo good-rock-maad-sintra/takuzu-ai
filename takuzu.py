@@ -18,9 +18,6 @@ from search import (
     recursive_best_first_search,
 )
 
-# TODO: remove this
-from time import sleep
-
 
 # "Util" function which isn't in utils.py (and we can't import math)
 def ceiling_division(dividend: int, divisor: int) -> int:
@@ -237,7 +234,7 @@ class Takuzu(Problem):
             new_mand_actions = ()
             for action in state.mandatory_actions:
                 if self.possible(action, state):
-                    new_mand_actions += (action, )
+                    return [action]
                 else:
                     return []
             new_poss_actions = ()
