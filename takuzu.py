@@ -40,11 +40,17 @@ class TakuzuState:
             parent_rows=None, parent_columns=None):
         self.board = board
         self.action = action
+
         if self.action is None:
             self.mandatory_actions = ()
             self.possible_actions = ()
             self.columns = set()
             self.rows = set()
+            for x in range(self.board.size):
+                if board.full_check(self.board.get_row_count(x)):
+                    self.rows.add(board.get_bin_row(x))
+                if board.full_check(self.board.get_col_count(x)):
+                    self.columns.add(board.get_bin_col(x))
         else:
             self.mandatory_actions = parent_mandatory_actions
             self.possible_actions = parent_possible_actions
@@ -61,8 +67,9 @@ class TakuzuState:
             x, y, _ = self.action
             if board.full_check(self.board.get_row_count(x)):
                 self.rows.add(board.get_bin_row(x))
-            if board.full_check(self.board.get_column_count(y)):
+            if board.full_check(self.board.get_col_count(y)):
                 self.columns.add(board.get_bin_col(y))
+
         self.id = TakuzuState.state_id
         TakuzuState.state_id += 1
 
@@ -91,7 +98,7 @@ class Board:
             return None
         return self.board[row][col]
 
-    def get_column_count(self, col: int):
+    def get_col_count(self, col: int):
         """Devolve o número de 0's e 1's na coluna especificada."""
         count = [0, 0]
         for row in range(self.size):
@@ -129,7 +136,6 @@ class Board:
                     raise ValueError
             else:
                 res |= (self.get_number(row, x) << x)
-        print('Bin rep of row', row, 'is', res)
         return res
 
     def get_bin_col(self, col: int, action=None):
@@ -144,7 +150,6 @@ class Board:
                     raise ValueError
             else:
                 res |= (self.get_number(x, col) << x)
-        print('Bin rep of col', col, 'is', res)
         return res
 
     def fill_cell(self, row: int, col: int, value: int):
@@ -220,7 +225,6 @@ class Takuzu(Problem):
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        # print("ENTERING ACTIONS")
         if state.action == None:
             for x,y in state.board.empty_cells():
                 for val in range(2):
@@ -230,8 +234,6 @@ class Takuzu(Problem):
                     elif self.possible(action, state):
                         state.possible_actions += (action, )
         else:
-            # print('Possible actions before:', state.possible_actions)
-            # print('Mandatory actions before:', state.mandatory_actions)
             new_mand_actions = ()
             for action in state.mandatory_actions:
                 if self.possible(action, state):
@@ -252,8 +254,6 @@ class Takuzu(Problem):
 
             state.mandatory_actions = new_mand_actions
             state.possible_actions = new_poss_actions
-            # print('Mandatory actions after:', state.mandatory_actions)
-            # print('Possible actions after:', state.possible_actions)
 
         if len(state.mandatory_actions) > 0:
             return list(state.mandatory_actions[:1])
@@ -272,8 +272,8 @@ class Takuzu(Problem):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
-        print("Doing action: {}".format(state.action))
-        print("Board is currently:\n{}".format(state.board))
+        #print("Doing action: {}".format(state.action))
+        #print("Board is currently:\n{}".format(state.board))
         # print("Possible actions: {}".format(state.possible_actions))
         # print("Mandatory actions: {}".format(state.mandatory_actions))
         return len(state.board.empty_cells()) == 0
@@ -288,14 +288,14 @@ class Takuzu(Problem):
         if action == None:
             return 0
         board = node.state.board
-        if self.impossible(action, state):
+        if self.impossible(action, node.state):
             return 1
-        elif self.mandatory(action, state):
+        elif self.mandatory(action, node.state):
             return 0
 
         result = 0
         for x,y in board.empty_cells():
-            row_count, col_count = board.get_row_count(x), board.get_column_count(y)
+            row_count, col_count = board.get_row_count(x), board.get_col_count(y)
             result += line_heuristic(row_count) + line_heuristic(col_count)
         return result / (2*n)
 
@@ -308,7 +308,7 @@ class Takuzu(Problem):
         if board.check_3_straight(row, col, value):
             return True
 
-        row_count, col_count = board.get_row_count(row), board.get_column_count(col)
+        row_count, col_count = board.get_row_count(row), board.get_col_count(col)
         if (board.almost_full_check(row_count) and \
                 board.get_bin_row(row, action) in state.rows) or \
                 (board.almost_full_check(col_count) and \
@@ -336,11 +336,8 @@ if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
     goal = depth_first_tree_search(takuzu)
-    # print("---")
+    #print("---")
     if goal:
         print(goal.state.board)
-        print([bin(x) for x in goal.state.rows])
-        print([bin(x) for x in goal.state.columns])
-        print(len(goal.state.rows), len(goal.state.columns))
     else:
         print('No goal')
