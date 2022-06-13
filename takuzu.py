@@ -40,15 +40,19 @@ class TakuzuState:
         self.board = board
         self.action = action
         if self.action is None:
-            self.mandatory_actions = []
-            self.possible_actions = []
+            self.mandatory_actions = ()
+            self.possible_actions = ()
         else:
             self.mandatory_actions = parent_mandatory_actions
             self.possible_actions = parent_possible_actions
             if self.action in self.mandatory_actions:
-                self.mandatory_actions.remove(self.action)
+                self.mandatory_actions = tuple(
+                    filter(lambda x: x != self.action, self.mandatory_actions)
+                )
             if self.action in self.possible_actions:
-                self.possible_actions.remove(self.action)
+                self.possible_actions = tuple(
+                    filter(lambda x: x != self.action, self.possible_actions)
+                )
         self.id = TakuzuState.state_id
         TakuzuState.state_id += 1
 
@@ -170,45 +174,44 @@ class Takuzu(Problem):
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        print("ENTERING ACTIONS")
+        # print("ENTERING ACTIONS")
         if state.action == None:
             for x,y in state.board.empty_cells():
                 for val in range(2):
                     action = (x,y,val)
                     if self.mandatory(action, state.board):
-                        state.mandatory_actions.append(action)
+                        state.mandatory_actions += (action, )
                     elif self.possible(action, state.board):
-                        state.possible_actions.append(action)
+                        state.possible_actions += (action, )
         else:
-            print('Possible actions before:', state.possible_actions)
-            print('Mandatory actions before:', state.mandatory_actions)
-            new_mand_actions = []
+            # print('Possible actions before:', state.possible_actions)
+            # print('Mandatory actions before:', state.mandatory_actions)
+            new_mand_actions = ()
             for action in state.mandatory_actions:
                 if self.possible(action, state.board):
-                    new_mand_actions.append(action)
+                    new_mand_actions += (action, )
                 else:
                     return []
-            new_poss_actions = []
+            new_poss_actions = ()
             for action in state.possible_actions:
-                if self.impossible(action, state.board):
-                    conj_action = (action[0], action[1], 1-action[2])
-                    if self.impossible(conj_action, state.board) and \
-                            (action[0], action[1]) in state.board.empty_cells():
-                        return []
-                elif self.mandatory(action, state.board):
-                    new_mand_actions.append(action)
-                else:
-                    new_poss_actions.append(action)
+                row, col, value = action
+                conj_action = (row, col, 1 - value)
+                if conj_action == state.action:
+                    continue
+
+                if self.mandatory(action, state.board):
+                    new_mand_actions += (action, )
+                elif self.possible(action, state.board):
+                    new_poss_actions += (action, )
 
             state.mandatory_actions = new_mand_actions
             state.possible_actions = new_poss_actions
-            print('Mandatory actions after:', state.mandatory_actions)
-            print('Possible actions after:', state.possible_actions)
+            # print('Mandatory actions after:', state.mandatory_actions)
+            # print('Possible actions after:', state.possible_actions)
 
         if len(state.mandatory_actions) > 0:
-            return state.mandatory_actions[:1]
-        else:
-            return state.possible_actions[:1]
+            return list(state.mandatory_actions[:1])
+        return list(state.possible_actions)
 
     def result(self, state: TakuzuState, action):
         """Retorna o estado resultante de executar a 'action' sobre
@@ -223,10 +226,10 @@ class Takuzu(Problem):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
-        print("Doing action: {}".format(state.action))
-        print("Board is currently:\n{}".format(state.board))
-        print("Possible actions: {}".format(state.possible_actions))
-        print("Mandatory actions: {}".format(state.mandatory_actions))
+        # print("Doing action: {}".format(state.action))
+        # print("Board is currently:\n{}".format(state.board))
+        # print("Possible actions: {}".format(state.possible_actions))
+        # print("Mandatory actions: {}".format(state.mandatory_actions))
         return len(state.board.empty_cells()) == 0
 
     def h(self, node: Node):
