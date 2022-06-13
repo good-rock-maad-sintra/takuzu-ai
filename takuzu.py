@@ -336,7 +336,7 @@ if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
     goal = depth_first_tree_search(takuzu)
-    print("---")
+    # print("---")
     if goal:
         print(goal.state.board)
         print([bin(x) for x in goal.state.rows])
