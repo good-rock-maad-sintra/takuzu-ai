@@ -34,21 +34,14 @@ def tuple_assignment(row: int, col: int, value: int, t: tuple):
 
 class TakuzuState:
     state_id = 0
-    action = None
 
     def __init__(self, board, parent_mandatory_actions=None, \
             parent_possible_actions=None, action=None):
         self.board = board
         self.action = action
         if self.action is None:
-            self.mandatory_actions = [
-                (row, col, value) for row, col in self.board.empty_cells()
-                        for value in (0, 1)
-            ]
-            self.possible_actions = [
-                (row, col, value) for row, col in self.board.empty_cells()
-                        for value in (0, 1)
-            ]
+            self.mandatory_actions = []
+            self.possible_actions = []
         else:
             self.mandatory_actions = parent_mandatory_actions
             self.possible_actions = parent_possible_actions
@@ -60,6 +53,9 @@ class TakuzuState:
 
     def __lt__(self, other) -> bool:
         return self.id < other.id
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 class Board:
@@ -170,15 +166,31 @@ class Takuzu(Problem):
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        for action in state.mandatory_actions:
-            if not self.mandatory(action, state.board):
-                state.mandatory_actions.remove(action)
-        for action in state.possible_actions:
-            if self.impossible(action, state.board):
-                state.possible_actions.remove(action)
-            if self.mandatory(action, state.board):
-                state.mandatory_actions.append(action)
-                state.possible_actions.remove(action)
+        if state.action == None:
+            for x,y in state.board.empty_cells():
+                for val in range(2):
+                    action = (x,y,val)
+                    if self.mandatory(action, state.board):
+                        state.mandatory_actions.append(action)
+                    elif self.possible(action, state.board):
+                        state.possible_actions.append(action)
+        else:
+            for action in state.mandatory_actions:
+                if action == state.action:
+                    state.mandatory_actions.remove(action)
+                elif self.impossible(action, state.board):
+                    return []
+            for action in state.possible_actions:
+                if action == state.action:
+                    state.possible_actions.remove(action)
+                elif self.impossible(action, state.board):
+                    conj_action = (action[0], action[1], 1-action[2])
+                    if self.impossible(conj_action, state.board):
+                        return []
+                    state.possible_actions.remove(action)
+                elif self.mandatory(action, state.board):
+                    state.possible_actions.remove(action)
+                    state.mandatory_actions.append(action)
 
         if len(state.mandatory_actions) > 0:
             return state.mandatory_actions[:1]
@@ -207,21 +219,23 @@ class Takuzu(Problem):
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
 
-        def calc_heuristic(size: int, counts: list) -> float:
-            zero_count, one_count = counts
-            return (size / 2 - zero_count) / (size - zero_count - one_count)
+        def line_heuristic(counts: list) -> float:
+            return 1 / (count[0] + count[1])
 
         action = node.action
+        if action == None:
+            return 0
         board = node.state.board
         if self.impossible(action, board):
-            return 0
-        elif self.mandatory(action, board):
             return 1
-        row, col, _ = action
-        row_count, col_count = board.get_row_count(row), board.get_col_count(col)
-        return calc_heuristic(board.size, row_count) + calc_heuristic(
-            board.size, col_count
-        )
+        elif self.mandatory(action, board):
+            return 0
+
+        result = 0
+        for x,y in board.empty_cells():
+            row_count, col_count = board.get_row_count(x), board.get_col_count(y)
+            result += line_heuristic(row_count) + line_heuristic(col_count)
+        return result / (2*n)
 
     def impossible(self, action: tuple, board: Board) -> bool:
         """Checks whether executing the action is impossible or not."""
@@ -246,17 +260,14 @@ class Takuzu(Problem):
         those coordinates will always have to happen, given the current
         board configuration."""
         row, col, value = action
-        return self.impossible((row, col, 1 - value), board) and self.possible(
-            (row, col, value), board
-        )
+        return self.impossible((row, col, 1 - value), board) and \
+                self.possible((row, col, value), board)
 
 
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    print(board)
-    print(board.empty_cells())
-    goal = depth_first_tree_search(takuzu)
+    goal = astar_search(takuzu)
     print("---")
     if goal:
         print(goal.state.board)
