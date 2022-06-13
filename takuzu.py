@@ -47,7 +47,10 @@ class TakuzuState:
             self.columns = set()
             self.rows = set()
             for x in range(self.board.size):
-                self.add_binary_lines(x, x)
+                if self.board.full_check(self.board.get_row_count(x)):
+                    self.rows.add(self.board.get_bin_row(x))
+                if self.board.full_check(self.board.get_col_count(x)):
+                    self.columns.add(self.board.get_bin_col(x))
         else:
             self.mandatory_actions = parent_mandatory_actions.copy()
             self.possible_actions = parent_possible_actions.copy()
@@ -55,20 +58,18 @@ class TakuzuState:
                 self.mandatory_actions.remove(self.action)
             elif self.action in self.possible_actions:
                 self.possible_actions.remove(self.action)
+
             self.rows = parent_rows.copy()
             self.columns = parent_columns.copy()
             row, col, _ = self.action
-            self.add_binary_lines(row, col)
+            if self.board.almost_full_check(self.board.get_row_count(row)):
+                self.rows.add(self.board.get_bin_row(row, self.action))
+            if self.board.almost_full_check(self.board.get_col_count(col)):
+                self.columns.add(self.board.get_bin_col(col, self.action))
 
         self.id = TakuzuState.state_id
         TakuzuState.state_id += 1
     
-    def add_binary_lines(self, row: int, col: int) -> None:
-        if self.board.full_check(self.board.get_row_count(row)):
-            self.rows.add(self.board.get_bin_row(row))
-        if self.board.full_check(self.board.get_col_count(col)):
-            self.columns.add(self.board.get_bin_col(col))
-
     def __eq__(self, other) -> bool:
         return self.id == other.id
 
@@ -262,13 +263,16 @@ class Takuzu(Problem):
         das presentes na lista obtida pela execução de
         self.actions(state)."""
         row, col, value = action
-        new_board = state.board.fill_cell(row, col, value)
-        return TakuzuState(new_board, state.mandatory_actions, state.possible_actions, action, state.rows, state.columns)
+        return TakuzuState(state.board, state.mandatory_actions, state.possible_actions, action, state.rows, state.columns)
 
     def goal_test(self, state: TakuzuState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
+        if state.action:
+            x, y, val = state.action
+            state.board = state.board.fill_cell(x, y, val)
+        
         #debug(state)
         return len(state.board.empty_cells()) == 0
 
@@ -329,7 +333,7 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = depth_first_tree_search(takuzu)
+    goal = breadth_first_tree_search(takuzu)
     #print("---")
     if goal:
         print(goal.state.board)
