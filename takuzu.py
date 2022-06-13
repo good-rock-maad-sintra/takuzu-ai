@@ -36,12 +36,15 @@ class TakuzuState:
     state_id = 0
 
     def __init__(self, board, parent_mandatory_actions=None, \
-            parent_possible_actions=None, action=None):
+            parent_possible_actions=None, action=None, \
+            parent_rows=None, parent_columns=None):
         self.board = board
         self.action = action
         if self.action is None:
             self.mandatory_actions = ()
             self.possible_actions = ()
+            self.columns = set()
+            self.rows = set()
         else:
             self.mandatory_actions = parent_mandatory_actions
             self.possible_actions = parent_possible_actions
@@ -53,6 +56,13 @@ class TakuzuState:
                 self.possible_actions = tuple(
                     filter(lambda x: x != self.action, self.possible_actions)
                 )
+            self.rows = parent_rows.copy()
+            self.columns = parent_columns.copy()
+            x, y, _ = self.action
+            if board.full_check(self.board.get_row_count(x)):
+                self.rows.add(board.get_bin_row(x))
+            if board.full_check(self.board.get_column_count(y)):
+                self.columns.add(board.get_bin_col(y))
         self.id = TakuzuState.state_id
         TakuzuState.state_id += 1
 
@@ -100,6 +110,42 @@ class Board:
                 continue
             count[val] += 1
         return count
+
+    def full_check(self, count: tuple):
+        return count[0]+count[1] == self.size
+
+    def almost_full_check(self, count: tuple):
+        return count[0]+count[1] == self.size-1
+
+    def get_bin_row(self, row: int, action=None):
+        res = 0b0
+        for x in range(self.size):
+            if self.get_number(row, x) == self.EMPTY_CELL:
+                if action == None:
+                    raise ValueError
+                elif action[0] == row and action[1] == x:
+                    res |= (action[2] << x)
+                else:
+                    raise ValueError
+            else:
+                res |= (self.get_number(row, x) << x)
+        print('Bin rep of row', row, 'is', res)
+        return res
+
+    def get_bin_col(self, col: int, action=None):
+        res = 0b0
+        for x in range(self.size):
+            if self.get_number(x, col) == self.EMPTY_CELL:
+                if action == None:
+                    raise ValueError
+                elif action[0] == x and action[1] == col:
+                    res |= (action[2] << x)
+                else:
+                    raise ValueError
+            else:
+                res |= (self.get_number(x, col) << x)
+        print('Bin rep of col', col, 'is', res)
+        return res
 
     def fill_cell(self, row: int, col: int, value: int):
         """Preenche uma célula com um valor."""
@@ -179,16 +225,16 @@ class Takuzu(Problem):
             for x,y in state.board.empty_cells():
                 for val in range(2):
                     action = (x,y,val)
-                    if self.mandatory(action, state.board):
+                    if self.mandatory(action, state):
                         state.mandatory_actions += (action, )
-                    elif self.possible(action, state.board):
+                    elif self.possible(action, state):
                         state.possible_actions += (action, )
         else:
             # print('Possible actions before:', state.possible_actions)
             # print('Mandatory actions before:', state.mandatory_actions)
             new_mand_actions = ()
             for action in state.mandatory_actions:
-                if self.possible(action, state.board):
+                if self.possible(action, state):
                     new_mand_actions += (action, )
                 else:
                     return []
@@ -199,9 +245,9 @@ class Takuzu(Problem):
                 if conj_action == state.action:
                     continue
 
-                if self.mandatory(action, state.board):
+                if self.mandatory(action, state):
                     new_mand_actions += (action, )
-                elif self.possible(action, state.board):
+                elif self.possible(action, state):
                     new_poss_actions += (action, )
 
             state.mandatory_actions = new_mand_actions
@@ -220,14 +266,14 @@ class Takuzu(Problem):
         self.actions(state)."""
         row, col, value = action
         new_board = state.board.fill_cell(row, col, value)
-        return TakuzuState(new_board, state.mandatory_actions, state.possible_actions, action)
+        return TakuzuState(new_board, state.mandatory_actions, state.possible_actions, action, state.rows, state.columns)
 
     def goal_test(self, state: TakuzuState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
-        # print("Doing action: {}".format(state.action))
-        # print("Board is currently:\n{}".format(state.board))
+        print("Doing action: {}".format(state.action))
+        print("Board is currently:\n{}".format(state.board))
         # print("Possible actions: {}".format(state.possible_actions))
         # print("Mandatory actions: {}".format(state.mandatory_actions))
         return len(state.board.empty_cells()) == 0
@@ -242,42 +288,48 @@ class Takuzu(Problem):
         if action == None:
             return 0
         board = node.state.board
-        if self.impossible(action, board):
+        if self.impossible(action, state):
             return 1
-        elif self.mandatory(action, board):
+        elif self.mandatory(action, state):
             return 0
 
         result = 0
         for x,y in board.empty_cells():
-            row_count, col_count = board.get_row_count(x), board.get_col_count(y)
+            row_count, col_count = board.get_row_count(x), board.get_column_count(y)
             result += line_heuristic(row_count) + line_heuristic(col_count)
         return result / (2*n)
 
-    def impossible(self, action: tuple, board: Board) -> bool:
+    def impossible(self, action: tuple, state: TakuzuState) -> bool:
         """Checks whether executing the action is impossible or not."""
+        board = state.board
         row, col, value = action
         if board.get_number(row, col) != board.EMPTY_CELL:
             return True
         if board.check_3_straight(row, col, value):
             return True
+
         row_count, col_count = board.get_row_count(row), board.get_column_count(col)
+        if (board.almost_full_check(row_count) and \
+                board.get_bin_row(row, action) in state.rows) or \
+                (board.almost_full_check(col_count) and \
+                board.get_bin_col(col, action) in state.columns):
+            return True
         ceiling = ceiling_division(board.size, 2)
         if row_count[value] >= ceiling or col_count[value] >= ceiling:
             return True
         return False
-        # TODO: return board.check_2_equal_rows_or_columns(row, col, value)
 
-    def possible(self, action: tuple, board: Board) -> bool:
+    def possible(self, action: tuple, state: TakuzuState) -> bool:
         """Checks whether executing the action is possible or not."""
-        return not self.impossible(action, board)
+        return not self.impossible(action, state)
 
-    def mandatory(self, action: tuple, board: Board) -> bool:
+    def mandatory(self, action: tuple, state: TakuzuState) -> bool:
         """Checks whether the action is mandatory or not (it placing a value in
         those coordinates will always have to happen, given the current
-        board configuration."""
+        state configuration."""
         row, col, value = action
-        return self.impossible((row, col, 1 - value), board) and \
-                self.possible((row, col, value), board)
+        return self.impossible((row, col, 1 - value), state) and \
+                self.possible((row, col, value), state)
 
 
 if __name__ == "__main__":
@@ -287,5 +339,8 @@ if __name__ == "__main__":
     print("---")
     if goal:
         print(goal.state.board)
+        print([bin(x) for x in goal.state.rows])
+        print([bin(x) for x in goal.state.columns])
+        print(len(goal.state.rows), len(goal.state.columns))
     else:
         print('No goal')
