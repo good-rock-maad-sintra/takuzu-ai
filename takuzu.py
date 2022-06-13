@@ -34,22 +34,20 @@ def tuple_assignment(row: int, col: int, value: int, t: tuple):
 
 class TakuzuState:
     state_id = 0
+    action = None
 
-    def __init__(self, board, possible_actions=None, action=None):
+    def __init__(self, board, parent_actions=None, action=None):
         self.board = board
-        self.id = TakuzuState.state_id
         self.action = action
-        TakuzuState.state_id += 1
-        if possible_actions is None:
-            actions = self.board.empty_cells()
-            self.possible_actions = [
-                (row, col, value) for row, col in actions for value in (0, 1)
+        if self.action is None:
+            self.actions = [
+                (row, col, value) for row, col in self.board.empty_cells()
+                        for value in (0, 1)
             ]
         else:
-            row, col, _ = action
-            self.possible_actions = possible_actions.copy()
-            self.possible_actions.remove((row, col, 0))
-            self.possible_actions.remove((row, col, 1))
+            self.actions = parent_actions
+        self.id = TakuzuState.state_id
+        TakuzuState.state_id += 1
 
     def __eq__(self, other) -> bool:
         return self.id == other.id
@@ -134,10 +132,7 @@ class Board:
             self.adjacent_horizontal_numbers(row, col),
             (self.get_number(row, col + 1), self.get_number(row, col + 2)),
         ]
-        return any(
-            (vertical_adjacencies[i] == to_avoid or horizontal_adjacencies == to_avoid)
-            for i in range(0, 3)
-        )
+        return to_avoid in vertical_adjacencies + horizontal_adjacencies
 
     @staticmethod
     def parse_instance_from_stdin():
@@ -169,13 +164,12 @@ class Takuzu(Problem):
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        for action in state.possible_actions:
-            if self.possible(action, state.board):
-                row, col, val = action
-                if self.possible((row, col, 1 - val), state.board):
-                    return [action, (row, col, 1 - val)]
-                return [action]
-        return []
+        actions = [
+            action for action in state.actions \
+                    if self.possible(action, state.board)
+        ]
+        state.actions = actions
+        return actions
 
     def result(self, state: TakuzuState, action):
         """Retorna o estado resultante de executar a 'action' sobre
@@ -184,18 +178,17 @@ class Takuzu(Problem):
         self.actions(state)."""
         row, col, value = action
         new_board = state.board.fill_cell(row, col, value)
-        return TakuzuState(new_board, state.possible_actions, action)
+        return TakuzuState(new_board, state.actions, action)
 
     def goal_test(self, state: TakuzuState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
         # we reached a goal_state if there are no possible actions left - there are no cells with value 2 (missing stuff)
+        print("Doing action: {}".format(state.action))
         print("Board is currently:\n{}".format(state.board))
         print("Possible actions: {}".format(self.actions(state)))
-        print("The action executed to get to this was: {}".format(state.action))
-        # sleep(2)
-        return len(state.possible_actions) == 0
+        return len(state.board.empty_cells()) == 0
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
@@ -219,11 +212,15 @@ class Takuzu(Problem):
     def impossible(self, action: tuple, board: Board) -> bool:
         """Checks whether executing the action is impossible or not."""
         row, col, value = action
+        if board.get_number(row, col) != board.EMPTY_CELL:
+            return True
+        if board.check_3_straight(row, col, value):
+            return True
         row_count, col_count = board.get_row_count(row), board.get_column_count(col)
         ceiling = ceiling_division(board.size, 2)
         if row_count[value] >= ceiling or col_count[value] >= ceiling:
             return True
-        return board.check_3_straight(row, col, value)
+        return False
         # TODO: return board.check_2_equal_rows_or_columns(row, col, value)
 
     def possible(self, action: tuple, board: Board) -> bool:
@@ -243,6 +240,8 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
+    print(board)
+    print(board.empty_cells())
     goal = depth_first_tree_search(takuzu)
     print("---")
     print(goal.state.board)
