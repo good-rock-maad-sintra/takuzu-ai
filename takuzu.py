@@ -213,6 +213,7 @@ class Takuzu(Problem):
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
+        ran_once = False
         possible = []
         for row, col in state.board.empty_cells:
             ac0, ac1 = (row, col, 0), (row, col, 1)
@@ -221,11 +222,12 @@ class Takuzu(Problem):
             elif self.mandatory(ac1, state):
                 return [ac1]
 
-            if possible == []:
+            if not ran_once:
                 if self.possible(ac0, state):
                     possible.append(ac0)
                 if self.possible(ac1, state):
                     possible.append(ac1)
+                ran_once = True
         return possible
 
     def result(self, state: TakuzuState, action):
