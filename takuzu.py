@@ -123,9 +123,7 @@ class Board:
         res = 0b0
         for x in range(self.size):
             if self.get_number(row, x) == self.EMPTY_CELL:
-                if action == None:
-                    raise ValueError
-                elif action[0] == row and action[1] == x:
+                if action != None and action[0] == row and action[1] == x:
                     res |= (action[2] << x)
                 else:
                     raise ValueError
@@ -137,9 +135,7 @@ class Board:
         res = 0b0
         for x in range(self.size):
             if self.get_number(x, col) == self.EMPTY_CELL:
-                if action == None:
-                    raise ValueError
-                elif action[0] == x and action[1] == col:
+                if action != None and action[0] == x and action[1] == col:
                     res |= (action[2] << x)
                 else:
                     raise ValueError
@@ -215,7 +211,6 @@ class Takuzu(Problem):
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        poss_actions = []
         for x,y in state.board.empty_cells:
             ac0, ac1 = (x,y,0), (x,y,1)
             if self.impossible(ac0, state) and self.impossible(ac1, state):
@@ -225,9 +220,7 @@ class Takuzu(Problem):
             elif self.mandatory(ac1, state):
                 return [ac1]
             else:
-                poss_actions += [ac0, ac1]
-                
-        return poss_actions
+                return [ac0, ac1]
 
     def result(self, state: TakuzuState, action):
         """Retorna o estado resultante de executar a 'action' sobre
@@ -304,7 +297,7 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = depth_first_tree_search(takuzu)
+    goal = astar_search(takuzu)
     #print("---")
     if goal:
         print(goal.state.board)
