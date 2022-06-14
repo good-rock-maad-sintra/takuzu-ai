@@ -13,9 +13,11 @@ from search import (
     Node,
     astar_search,
     breadth_first_tree_search,
+    depth_first_graph_search,
     depth_first_tree_search,
     greedy_search,
     recursive_best_first_search,
+    compare_searchers
 )
 
 def debug(state):
@@ -79,7 +81,7 @@ class Board:
         new_board.rows = self.rows.copy()
         new_board.columns = self.columns.copy()
         
-        new_board.empty_cells.remove((x,y))
+        new_board.empty_cells.remove((x, y))
         if new_board.full_check(new_board.get_row_count(x)):
             new_board.rows.add(new_board.get_bin_row(x))
         if new_board.full_check(new_board.get_col_count(y)):
@@ -211,18 +213,19 @@ class Takuzu(Problem):
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        row, col = state.board.empty_cells[0]
-        ac0, ac1 = (row, col, 0), (row, col, 1)
         possible = []
-        if self.mandatory(ac0, state):
-            return [ac0]
-        elif self.mandatory(ac1, state):
-            return [ac1]
+        for row, col in state.board.empty_cells:
+            ac0, ac1 = (row, col, 0), (row, col, 1)
+            if self.mandatory(ac0, state):
+                return [ac0]
+            elif self.mandatory(ac1, state):
+                return [ac1]
 
-        if self.possible(ac0, state):
-            possible.append(ac0)
-        if self.possible(ac1, state):
-            possible.append(ac1)
+            if possible == []:
+                if self.possible(ac0, state):
+                    possible.append(ac0)
+                if self.possible(ac1, state):
+                    possible.append(ac1)
         return possible
 
     def result(self, state: TakuzuState, action):
@@ -264,6 +267,15 @@ class Takuzu(Problem):
             result += line_heuristic(row_count) + line_heuristic(col_count)
         return result / (2*board.size)
 
+    def action_equals_row(self, row: int, row_count: list, col: int, col_count: list, action: tuple, board: list):
+        """Checks whether the action creates a situation where there are two
+        equal rows and/or columns in the board (fully filled)."""
+        return (
+            (board.almost_full_check(row_count) and board.get_bin_row(row, action) in board.rows)
+            or
+            (board.almost_full_check(col_count) and board.get_bin_col(col, action) in board.columns)
+        )
+    
     def impossible(self, action: tuple, state: TakuzuState) -> bool:
         """Checks whether executing the action is impossible or not."""
         board = state.board
@@ -277,10 +289,7 @@ class Takuzu(Problem):
         ceiling = ceiling_division(board.size, 2)
         if row_count[value] >= ceiling or col_count[value] >= ceiling:
             return True
-        if (board.almost_full_check(row_count) and \
-                board.get_bin_row(row, action) in board.rows) or \
-                (board.almost_full_check(col_count) and \
-                board.get_bin_col(col, action) in board.columns):
+        if self.action_equals_row(row, row_count, col, col_count, action, board):
             return True
         return False
 
