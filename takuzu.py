@@ -85,6 +85,13 @@ class Board:
         self.size = size
         self.board = board
 
+    def new_board(self, row: int, col: int, value: int):
+        """Cria um novo tabuleiro, após preencher a posição (row, col) 
+        col value."""
+        new_board = self.board.copy()
+        new_board[row][col] = value
+        return Board(new_board, self.size)
+
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
         if not 0 <= row < self.size or not 0 <= col < self.size:
@@ -145,11 +152,6 @@ class Board:
                 res |= (self.get_number(x, col) << x)
         return res
 
-    def fill_cell(self, row: int, col: int, value: int):
-        """Preenche uma célula com um valor."""
-        aux = tuple_assignment(row, col, value, self.board)
-        return Board(aux, self.size)
-
     def empty_cells(self) -> list:
         """Devolve uma lista com as posições vazias do tabuleiro."""
         return [
@@ -200,9 +202,9 @@ class Board:
             > stdin.readline()
         """
         n = int(sys.stdin.readline())
-        board = ()
+        board = []
         for line in sys.stdin.readlines():
-            board += (tuple(map(int, line.split())),)
+            board += (list(map(int, line.split())),)
         return Board(board, n)
 
     def __str__(self):
@@ -265,7 +267,6 @@ class Takuzu(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        row, col, value = action
         return TakuzuState(state.board, state.mandatory_actions, state.possible_actions, action, state.rows, state.columns)
 
     def goal_test(self, state: TakuzuState):
@@ -274,7 +275,7 @@ class Takuzu(Problem):
         estão preenchidas com uma sequência de números adjacentes."""
         if state.action:
             x, y, val = state.action
-            state.board = state.board.fill_cell(x, y, val)
+            state.board = state.board.new_board(x, y, val)
         
         #debug(state)
         return len(state.board.empty_cells()) == 0
@@ -283,7 +284,7 @@ class Takuzu(Problem):
         """Função heuristica utilizada para a procura A*."""
 
         def line_heuristic(counts: list) -> float:
-            return 1 / (count[0] + count[1])
+            return 1 / (counts[0] + counts[1])
 
         action = node.action
         if action == None:
@@ -298,7 +299,7 @@ class Takuzu(Problem):
         for x,y in board.empty_cells():
             row_count, col_count = board.get_row_count(x), board.get_col_count(y)
             result += line_heuristic(row_count) + line_heuristic(col_count)
-        return result / (2*n)
+        return result / (2*board.size)
 
     def impossible(self, action: tuple, state: TakuzuState) -> bool:
         """Checks whether executing the action is impossible or not."""
