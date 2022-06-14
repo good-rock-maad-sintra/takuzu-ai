@@ -256,7 +256,7 @@ class Takuzu(Problem):
             return 0
 
         result = 0
-        for x,y in board.empty_cells():
+        for x,y in board.empty_cells:
             row_count, col_count = board.get_row_count(x), board.get_col_count(y)
             result += line_heuristic(row_count) + line_heuristic(col_count)
         return result / (2*board.size)
@@ -297,7 +297,7 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = astar_search(takuzu)
+    goal = greedy_search(takuzu)
     #print("---")
     if goal:
         print(goal.state.board)
