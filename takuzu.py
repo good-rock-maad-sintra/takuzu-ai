@@ -81,9 +81,13 @@ class Board:
 
     EMPTY_CELL = 2
 
-    def __init__(self, board: list, size: int) -> None:
+    def __init__(self, board: list, size: int, empty_cells=None) -> None:
         self.size = size
         self.board = board
+        if not empty_cells:
+            self.empty_cells_count = len(self.empty_cells())
+        else:
+            self.empty_cells_count = empty_cells - 1
 
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -149,7 +153,7 @@ class Board:
         """Preenche uma célula com um valor."""
         aux = [[col for col in row] for row in self.board]
         aux[row][col] = value
-        return Board(aux, self.size)
+        return Board(aux, self.size, self.empty_cells_count)
 
     def empty_cells(self) -> list:
         """Devolve uma lista com as posições vazias do tabuleiro."""
@@ -219,7 +223,7 @@ class Takuzu(Problem):
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        if state.action == None:
+        if not state.action:
             for x,y in state.board.empty_cells():
                 for val in range(2):
                     action = (x,y,val)
@@ -266,7 +270,6 @@ class Takuzu(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        row, col, value = action
         return TakuzuState(state.board, state.mandatory_actions, state.possible_actions, action, state.rows, state.columns)
 
     def goal_test(self, state: TakuzuState):
@@ -277,8 +280,8 @@ class Takuzu(Problem):
             x, y, val = state.action
             state.board = state.board.fill_cell(x, y, val)
         
-        debug(state)
-        return len(state.board.empty_cells()) == 0
+        # debug(state)
+        return state.board.empty_cells_count == 0
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
