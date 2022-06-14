@@ -6,6 +6,8 @@
 # 99207 Diogo Gaspar
 # 99256 João Rocha
 
+# TODO: check for english v portuguese comments, types in function headers
+
 import sys
 import numpy as np
 from search import (
@@ -28,10 +30,6 @@ def debug(state):
 def ceiling_division(dividend: int, divisor: int) -> int:
     """Returns the ceiling of dividend / divisor."""
     return (dividend + divisor - 1) // divisor
-
-
-def tuple_assignment(row: int, col: int, value: int, t: tuple):
-    return t[0:row] + (t[row][0:col] + (value,) + t[row][col + 1 :],) + t[row + 1 :]
 
 
 class TakuzuState:
@@ -58,11 +56,16 @@ class Board:
 
     EMPTY_CELL = 2
 
-    def __init__(self, board: list, size: int, initial=False) -> None:
+    def __init__(self, board: list, size: int, action=None, empty_cells=None, rows=None, columns=None) -> None:
         self.size = size
-        self.board = board
-        if initial:
-            self.empty_cells = self.empty_cells()
+        if not action:
+            self.board = board
+            self.empty_cells = [
+                (row, col)
+                for row in range(self.size)
+                for col in range(self.size)
+                if self.board[row][col] == self.EMPTY_CELL
+            ]
             self.columns = set()
             self.rows = set()
             for x in range(self.size):
@@ -70,24 +73,21 @@ class Board:
                     self.rows.add(self.get_bin_row(x))
                 if self.full_check(self.get_col_count(x)):
                     self.columns.add(self.get_bin_col(x))
+            return
 
-    def new_board(self, x: int, y: int, val: int):
-        """Preenche uma célula com um valor."""
-        aux = [[col for col in row] for row in self.board]
-        aux[x][y] = val
-        new_board = Board(aux, self.size)
+        x, y, value = action
+        self.board = [[cell for cell in row] for row in board]
+        self.board[x][y] = value
 
-        new_board.empty_cells = self.empty_cells.copy()
-        new_board.rows = self.rows.copy()
-        new_board.columns = self.columns.copy()
-        
-        new_board.empty_cells.remove((x, y))
-        if new_board.full_check(new_board.get_row_count(x)):
-            new_board.rows.add(new_board.get_bin_row(x))
-        if new_board.full_check(new_board.get_col_count(y)):
-            new_board.columns.add(new_board.get_bin_col(y))
+        self.empty_cells = empty_cells.copy()
+        self.rows = rows.copy()
+        self.columns = columns.copy()
 
-        return new_board
+        self.empty_cells.remove((x, y))
+        if self.full_check(self.get_row_count(x)):
+            self.rows.add(self.get_bin_row(x))
+        if self.full_check(self.get_col_count(y)):
+            self.columns.add(self.get_bin_col(y))
 
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -145,15 +145,6 @@ class Board:
                 res |= (self.get_number(x, col) << x)
         return res
 
-    def empty_cells(self) -> list:
-        """Devolve uma lista com as posições vazias do tabuleiro."""
-        return [
-            (row, col)
-            for row in range(self.size)
-            for col in range(self.size)
-            if self.board[row][col] == self.EMPTY_CELL
-        ]
-
     def adjacent_vertical_numbers(self, row: int, col: int):
         """Devolve os valores imediatamente abaixo e acima,
         respectivamente."""
@@ -198,7 +189,7 @@ class Board:
         board = ()
         for line in sys.stdin.readlines():
             board += (list(map(int, line.split())),)
-        return Board(board, n, initial=True)
+        return Board(board, n)
 
     def __str__(self):
         """Imprime o tabuleiro."""
@@ -241,8 +232,14 @@ class Takuzu(Problem):
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
         if state.action:
-            x, y, val = state.action
-            state.board = state.board.new_board(x, y, val)
+            state.board = Board(
+                state.board.board,
+                state.board.size,
+                state.action,
+                state.board.empty_cells,
+                state.board.rows,
+                state.board.columns
+            )
         
         # debug(state)
         return len(state.board.empty_cells) == 0
@@ -311,7 +308,6 @@ if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
     goal = greedy_search(takuzu)
-    #print("---")
     if goal:
         print(goal.state.board)
     else:
