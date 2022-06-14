@@ -81,7 +81,7 @@ class Board:
 
     EMPTY_CELL = 2
 
-    def __init__(self, board: tuple, size: int) -> None:
+    def __init__(self, board: list, size: int) -> None:
         self.size = size
         self.board = board
 
@@ -147,7 +147,8 @@ class Board:
 
     def fill_cell(self, row: int, col: int, value: int):
         """Preenche uma célula com um valor."""
-        aux = tuple_assignment(row, col, value, self.board)
+        aux = [[col for col in row] for row in self.board]
+        aux[row][col] = value
         return Board(aux, self.size)
 
     def empty_cells(self) -> list:
@@ -202,7 +203,7 @@ class Board:
         n = int(sys.stdin.readline())
         board = ()
         for line in sys.stdin.readlines():
-            board += (tuple(map(int, line.split())),)
+            board += (list(map(int, line.split())),)
         return Board(board, n)
 
     def __str__(self):
@@ -234,13 +235,13 @@ class Takuzu(Problem):
             elif state.action in state.possible_actions:
                 state.possible_actions.remove(state.action)
 
-            new_mand_actions = set()
             for action in state.mandatory_actions:
                 if self.possible(action, state):
                     return [action]
                 else:
                     return []
 
+            new_mand_actions = set()
             new_poss_actions = set()
             for action in state.possible_actions:
                 row, col, value = action
@@ -276,14 +277,14 @@ class Takuzu(Problem):
             x, y, val = state.action
             state.board = state.board.fill_cell(x, y, val)
         
-        #debug(state)
+        debug(state)
         return len(state.board.empty_cells()) == 0
 
     def h(self, node: Node):
         """Função heuristica utilizada para a procura A*."""
 
         def line_heuristic(counts: list) -> float:
-            return 1 / (count[0] + count[1])
+            return 1 / (counts[0] + counts[1])
 
         action = node.action
         if action == None:
@@ -298,7 +299,7 @@ class Takuzu(Problem):
         for x,y in board.empty_cells():
             row_count, col_count = board.get_row_count(x), board.get_col_count(y)
             result += line_heuristic(row_count) + line_heuristic(col_count)
-        return result / (2*n)
+        return result / (2*node.state.board.size)
 
     def impossible(self, action: tuple, state: TakuzuState) -> bool:
         """Checks whether executing the action is impossible or not."""
@@ -336,7 +337,7 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = breadth_first_tree_search(takuzu)
+    goal = depth_first_tree_search(takuzu)
     #print("---")
     if goal:
         print(goal.state.board)
