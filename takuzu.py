@@ -217,16 +217,15 @@ class Takuzu(Problem):
         possible = []
         for row, col in state.board.empty_cells:
             ac0, ac1 = (row, col, 0), (row, col, 1)
+            if self.impossible(ac0, state) and self.impossible(ac1, state):
+                return []
             if self.mandatory(ac0, state):
                 return [ac0]
             elif self.mandatory(ac1, state):
                 return [ac1]
 
             if not ran_once:
-                if self.possible(ac0, state):
-                    possible.append(ac0)
-                if self.possible(ac1, state):
-                    possible.append(ac1)
+                possible = [ac0, ac1]
                 ran_once = True
         return possible
 
@@ -311,7 +310,7 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = depth_first_tree_search(takuzu)
+    goal = greedy_search(takuzu)
     #print("---")
     if goal:
         print(goal.state.board)
