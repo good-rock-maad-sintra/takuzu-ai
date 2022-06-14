@@ -232,6 +232,15 @@ class Takuzu(Problem):
                     elif self.possible(action, state):
                         state.possible_actions.add(action)
         else:
+            # if there's an empty cell without an associated possible/mandatory action,
+            # we have to start backtracking now - returning [] for that purpose
+            # FIXME: this could probably be done better
+            empty_cells = state.board.empty_cells()
+            union = state.mandatory_actions.union(state.possible_actions)
+            for row, col in empty_cells:
+                if (row, col, 0) not in union and (row, col, 1) not in union:
+                    return []
+
             state.mandatory_actions = state.mandatory_actions.copy()
             state.possible_actions = state.possible_actions.copy()
             if state.action in state.mandatory_actions:
