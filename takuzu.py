@@ -211,16 +211,19 @@ class Takuzu(Problem):
     def actions(self, state: TakuzuState):
         """Retorna uma lista de ações que podem ser executadas a
         partir do estado passado como argumento."""
-        for x,y in state.board.empty_cells:
-            ac0, ac1 = (x,y,0), (x,y,1)
-            if self.impossible(ac0, state) and self.impossible(ac1, state):
-                return []
-            elif self.mandatory(ac0, state):
-                return [ac0]
-            elif self.mandatory(ac1, state):
-                return [ac1]
-            else:
-                return [ac0, ac1]
+        row, col = state.board.empty_cells[0]
+        ac0, ac1 = (row, col, 0), (row, col, 1)
+        possible = []
+        if self.mandatory(ac0, state):
+            return [ac0]
+        elif self.mandatory(ac1, state):
+            return [ac1]
+
+        if self.possible(ac0, state):
+            possible.append(ac0)
+        if self.possible(ac1, state):
+            possible.append(ac1)
+        return possible
 
     def result(self, state: TakuzuState, action):
         """Retorna o estado resultante de executar a 'action' sobre
@@ -237,7 +240,7 @@ class Takuzu(Problem):
             x, y, val = state.action
             state.board = state.board.new_board(x, y, val)
         
-        #debug(state)
+        # debug(state)
         return len(state.board.empty_cells) == 0
 
     def h(self, node: Node):
@@ -297,7 +300,7 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = greedy_search(takuzu)
+    goal = depth_first_tree_search(takuzu)
     #print("---")
     if goal:
         print(goal.state.board)
