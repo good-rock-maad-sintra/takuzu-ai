@@ -81,7 +81,7 @@ class Board:
 
     EMPTY_CELL = 2
 
-    def __init__(self, board: tuple, size: int) -> None:
+    def __init__(self, board: list, size: int) -> None:
         self.size = size
         self.board = board
 
@@ -236,13 +236,13 @@ class Takuzu(Problem):
             elif state.action in state.possible_actions:
                 state.possible_actions.remove(state.action)
 
-            new_mand_actions = set()
             for action in state.mandatory_actions:
                 if self.possible(action, state):
                     return [action]
                 else:
                     return []
 
+            new_mand_actions = set()
             new_poss_actions = set()
             for action in state.possible_actions:
                 row, col, value = action
@@ -277,7 +277,7 @@ class Takuzu(Problem):
             x, y, val = state.action
             state.board = state.board.new_board(x, y, val)
         
-        #debug(state)
+        debug(state)
         return len(state.board.empty_cells()) == 0
 
     def h(self, node: Node):
@@ -337,7 +337,7 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = breadth_first_tree_search(takuzu)
+    goal = depth_first_tree_search(takuzu)
     #print("---")
     if goal:
         print(goal.state.board)
