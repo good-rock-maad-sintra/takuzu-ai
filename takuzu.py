@@ -7,7 +7,7 @@
 # 99256 João Rocha
 
 import sys
-from math import ceil
+from numpy import ceil
 from search import (
     Problem,
     Node,
