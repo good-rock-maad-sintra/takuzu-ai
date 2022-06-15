@@ -99,19 +99,43 @@ class Board:
             return None
         return (self.get_number(row, col - 1), self.get_number(row, col + 1))
 
+    def adjacent_left_numbers(self, row: int, col: int) -> tuple:
+        """Returns the values of the two cells imediately to the left of (row, col)."""
+        if not 0 <= row < self.size or not 0 <= col < self.size:
+            return None
+        return (self.get_number(row, col - 2), self.get_number(row, col - 1))
+
+    def adjacent_right_numbers(self, row: int, col: int) -> tuple:
+        """Returns the values of the two cells imediately to the right of (row, col)."""
+        if not 0 <= row < self.size or not 0 <= col < self.size:
+            return None
+        return (self.get_number(row, col + 1), self.get_number(row, col + 2))
+
+    def adjacent_up_numbers(self, row: int, col: int) -> tuple:
+        """Returns the values of the two cells imediately above (row, col)."""
+        if not 0 <= row < self.size or not 0 <= col < self.size:
+            return None
+        return (self.get_number(row - 2, col), self.get_number(row - 1, col))
+
+    def adjacent_down_numbers(self, row: int, col: int) -> tuple:
+        """Returns the values of the two cells imediately below (row, col)."""
+        if not 0 <= row < self.size or not 0 <= col < self.size:
+            return None
+        return (self.get_number(row + 1, col), self.get_number(row + 2, col))
+
     def check_3_straight(self, row: int, col: int, val: int) -> bool:
         """Checks whether the action given by (row, col, val) creates a 3 in
         a row situation."""
         to_avoid = (val, val)
         vertical_adjacencies = [
-            (self.get_number(row - 2, col), self.get_number(row - 1, col)),
+            self.adjacent_up_numbers(row, col),
             self.adjacent_vertical_numbers(row, col),
-            (self.get_number(row + 1, col), self.get_number(row + 2, col)),
+            self.adjacent_down_numbers(row, col),
         ]
         horizontal_adjacencies = [
-            (self.get_number(row, col - 2), self.get_number(row, col - 1)),
+            self.adjacent_left_numbers(row, col),
             self.adjacent_horizontal_numbers(row, col),
-            (self.get_number(row, col + 1), self.get_number(row, col + 2)),
+            self.adjacent_right_numbers(row, col),
         ]
         return to_avoid in vertical_adjacencies + horizontal_adjacencies
 
@@ -248,7 +272,9 @@ class Takuzu(Problem):
         """Heuristic function utilized for the A* search."""
 
         def calc_line_constraint(node: Node):
-            # TODO: docstring
+            """Calculates the fraction of filled values on a row/column that 
+            have the same value as the one attributed to the cell in the last 
+            action. Returns the average of these two fractions."""
             board = node.state.board
             row, col, val = node.action
             row_count, col_count = board.get_row_count(row), board.get_col_count(col)
@@ -257,14 +283,19 @@ class Takuzu(Problem):
             return (col_tendency + row_tendency) / 2
 
         def calc_adj_constraint(node: Node):
-            """Returns the number of adjacent cells with the same value
-            as the value of the action performed."""
+            """Returns the number of directions in which a play will be forced
+            to prevent 3 in a row."""
             board = node.state.board
             row, col, val = node.action
-            vertical_adjacents = board.adjacent_vertical_numbers(row, col)
-            horizontal_adjacents = board.adjacent_horizontal_numbers(row, col)
+            adj_pairs = [
+                board.adjacent_up_numbers(row, col), \
+                board.adjacent_right_numbers(row, col), \
+                board.adjacent_down_numbers(row, col), \
+                board.adjacent_left_numbers(row, col)
+            ]
             
-            return vertical_adjacents.count(val) + horizontal_adjacents.count(val)
+            return sum(map(lambda x: int(x in \
+                [(val, board.EMPTY_CELL), (board.EMPTY_CELL, val)]), adj_pairs))
 
         def calc_weight(node: Node):
             """Calculates the 'weight' of a given node: heavier nodes are the
@@ -316,7 +347,7 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = depth_first_tree_search(takuzu)
+    goal = astar_search(takuzu)
     if goal:
         print(goal.state.board)
     else:
