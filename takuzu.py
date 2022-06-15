@@ -20,26 +20,16 @@ from search import (
     compare_searchers
 )
 
-def debug(state):
-    print("Doing action: {}".format(state.action))
-    print("Board is currently:\n{}".format(state.board))
-
 # "Util" function which isn't in utils.py (and we can't import math)
 def ceiling_division(dividend: int, divisor: int) -> int:
     """Returns the ceiling of dividend / divisor."""
     return (dividend + divisor - 1) // divisor
 
-
-def tuple_assignment(row: int, col: int, value: int, t: tuple):
-    return t[0:row] + (t[row][0:col] + (value,) + t[row][col + 1 :],) + t[row + 1 :]
-
-
 class TakuzuState:
     state_id = 0
 
-    def __init__(self, board, action=None):
+    def __init__(self, board):
         self.board = board
-        self.action = action
         self.id = TakuzuState.state_id
         TakuzuState.state_id += 1
     
@@ -55,14 +45,16 @@ class TakuzuState:
 
 class Board:
     """Representação interna de um tabuleiro de Takuzu."""
-
     EMPTY_CELL = 2
 
     def __init__(self, board: list, size: int, initial=False) -> None:
         self.size = size
         self.board = board
         if initial:
-            self.empty_cells = self.empty_cells()
+            self.empty_cells = [
+                    (x,y) for x in range(self.size) for y in range(self.size) \
+                    if self.get_number(x,y) == self.EMPTY_CELL
+            ]
             self.columns = set()
             self.rows = set()
             for x in range(self.size):
@@ -71,9 +63,10 @@ class Board:
                 if self.full_check(self.get_col_count(x)):
                     self.columns.add(self.get_bin_col(x))
 
-    def new_board(self, x: int, y: int, val: int):
-        """Preenche uma célula com um valor."""
+    def new_board(self, action: tuple):
+        """Cria um tabuleiro novo após aplicar a ação ao tabuleiro pai."""
         aux = [[col for col in row] for row in self.board]
+        x,y,val = action
         aux[x][y] = val
         new_board = Board(aux, self.size)
 
@@ -95,68 +88,8 @@ class Board:
             return None
         return self.board[row][col]
 
-    def get_col_count(self, col: int):
-        """Devolve o número de 0's e 1's na coluna especificada."""
-        count = [0, 0]
-        for row in range(self.size):
-            val = self.get_number(row, col)
-            if val == self.EMPTY_CELL:
-                continue
-            count[val] += 1
-        return count
-
-    def get_row_count(self, row: int):
-        """Devolve o número de 0's e 1's na linha especificada."""
-        count = [0, 0]
-        for col in range(self.size):
-            val = self.get_number(row, col)
-            if val == self.EMPTY_CELL:
-                continue
-            count[val] += 1
-        return count
-
-    def full_check(self, count: tuple):
-        return count[0] + count[1] == self.size
-
-    def almost_full_check(self, count: tuple):
-        return count[0] + count[1] == self.size - 1
-
-    def get_bin_row(self, row: int, action=None):
-        res = 0b0
-        for x in range(self.size):
-            if self.get_number(row, x) == self.EMPTY_CELL:
-                if action != None and action[0] == row and action[1] == x:
-                    res |= (action[2] << x)
-                else:
-                    raise ValueError
-            else:
-                res |= (self.get_number(row, x) << x)
-        return res
-
-    def get_bin_col(self, col: int, action=None):
-        res = 0b0
-        for x in range(self.size):
-            if self.get_number(x, col) == self.EMPTY_CELL:
-                if action != None and action[0] == x and action[1] == col:
-                    res |= (action[2] << x)
-                else:
-                    raise ValueError
-            else:
-                res |= (self.get_number(x, col) << x)
-        return res
-
-    def empty_cells(self) -> list:
-        """Devolve uma lista com as posições vazias do tabuleiro."""
-        return [
-            (row, col)
-            for row in range(self.size)
-            for col in range(self.size)
-            if self.board[row][col] == self.EMPTY_CELL
-        ]
-
     def adjacent_vertical_numbers(self, row: int, col: int):
-        """Devolve os valores imediatamente abaixo e acima,
-        respectivamente."""
+        """Devolve os valores imediatamente abaixo e acima, respectivamente."""
         if not 0 <= row < self.size or not 0 <= col < self.size:
             return None
         return (self.get_number(row - 1, col), self.get_number(row + 1, col))
@@ -182,6 +115,78 @@ class Board:
             (self.get_number(row, col + 1), self.get_number(row, col + 2)),
         ]
         return to_avoid in vertical_adjacencies + horizontal_adjacencies
+
+    def get_col_count(self, col: int):
+        """Devolve o número de 0's e 1's na coluna especificada."""
+        count = [0, 0]
+        for row in range(self.size):
+            val = self.get_number(row, col)
+            if val == self.EMPTY_CELL:
+                continue
+            count[val] += 1
+        return count
+
+    def get_row_count(self, row: int):
+        """Devolve o número de 0's e 1's na linha especificada."""
+        count = [0, 0]
+        for col in range(self.size):
+            val = self.get_number(row, col)
+            if val == self.EMPTY_CELL:
+                continue
+            count[val] += 1
+        return count
+
+    def get_bin_row(self, row: int, action=None):
+        """Returns a binary representation of a row. If action=None returns
+        the representation of the row col, otherwise returns its representation
+        after performing action. This function can only be called on rows which
+        are either full or will be full after performing action."""
+        res = 0b0
+        for x in range(self.size):
+            if self.get_number(row, x) == self.EMPTY_CELL:
+                if action != None and action[0] == row and action[1] == x:
+                    res |= (action[2] << x)
+                else:
+                    raise ValueError
+            else:
+                res |= (self.get_number(row, x) << x)
+        return res
+
+    def get_bin_col(self, col: int, action=None):
+        """Returns a binary representation of a column. If action=None returns
+        the representation of the column col, otherwise returns its representation
+        after performing action. This function can only be called on columns which
+        are either full or will be full after performing action."""
+        res = 0b0
+        for x in range(self.size):
+            if self.get_number(x, col) == self.EMPTY_CELL:
+                if action != None and action[0] == x and action[1] == col:
+                    res |= (action[2] << x)
+                else:
+                    raise ValueError
+            else:
+                res |= (self.get_number(x, col) << x)
+        return res
+
+    def full_check(self, count: tuple):
+        """Verifica se uma linha está cheia"""
+        return count[0] + count[1] == self.size
+
+    def almost_full_check(self, count: tuple):
+        """Verifica se uma linha está a uma posição de ficar cheia"""
+        return count[0] + count[1] == self.size - 1
+
+    def action_equals_row(self, row_count: list, col_count: list, \
+            action: tuple):
+        """Checks whether the action creates a situation where there are two
+        equal rows and/or columns in the board (fully filled)."""
+        row, col, _ = action
+        return (
+            (self.almost_full_check(row_count) and \
+            self.get_bin_row(row, action) in self.rows) or \
+            (self.almost_full_check(col_count) and \
+            self.get_bin_col(col, action) in self.columns)
+        )
 
     @staticmethod
     def parse_instance_from_stdin():
@@ -219,7 +224,7 @@ class Takuzu(Problem):
             ac0, ac1 = (row, col, 0), (row, col, 1)
             if self.impossible(ac0, state) and self.impossible(ac1, state):
                 return []
-            if self.mandatory(ac0, state):
+            elif self.mandatory(ac0, state):
                 return [ac0]
             elif self.mandatory(ac1, state):
                 return [ac1]
@@ -234,17 +239,13 @@ class Takuzu(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        return TakuzuState(state.board, action)
+        new_board = state.board.new_board(action)
+        return TakuzuState(new_board)
 
     def goal_test(self, state: TakuzuState):
         """Retorna True se e só se o estado passado como argumento é
         um estado objetivo. Deve verificar se todas as posições do tabuleiro
         estão preenchidas com uma sequência de números adjacentes."""
-        if state.action:
-            x, y, val = state.action
-            state.board = state.board.new_board(x, y, val)
-        
-        # debug(state)
         return len(state.board.empty_cells) == 0
 
     def h(self, node: Node):
@@ -268,15 +269,6 @@ class Takuzu(Problem):
             result += line_heuristic(row_count) + line_heuristic(col_count)
         return result / (2*board.size)
 
-    def action_equals_row(self, row: int, row_count: list, col: int, col_count: list, action: tuple, board: list):
-        """Checks whether the action creates a situation where there are two
-        equal rows and/or columns in the board (fully filled)."""
-        return (
-            (board.almost_full_check(row_count) and board.get_bin_row(row, action) in board.rows)
-            or
-            (board.almost_full_check(col_count) and board.get_bin_col(col, action) in board.columns)
-        )
-    
     def impossible(self, action: tuple, state: TakuzuState) -> bool:
         """Checks whether executing the action is impossible or not."""
         board = state.board
@@ -290,7 +282,7 @@ class Takuzu(Problem):
         ceiling = ceiling_division(board.size, 2)
         if row_count[value] >= ceiling or col_count[value] >= ceiling:
             return True
-        if self.action_equals_row(row, row_count, col, col_count, action, board):
+        if board.action_equals_row(row_count, col_count, action):
             return True
         return False
 
@@ -310,8 +302,7 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = greedy_search(takuzu)
-    #print("---")
+    goal = depth_first_tree_search(takuzu)
     if goal:
         print(goal.state.board)
     else:
