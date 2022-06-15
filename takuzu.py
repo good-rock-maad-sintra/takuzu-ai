@@ -6,6 +6,8 @@
 # 99207 Diogo Gaspar
 # 99256 João Rocha
 
+# TODO: check for english v portuguese comments, types in function headers
+
 import sys
 import numpy as np
 from search import (
@@ -47,13 +49,20 @@ class Board:
     """Representação interna de um tabuleiro de Takuzu."""
     EMPTY_CELL = 2
 
-    def __init__(self, board: list, size: int, initial=False) -> None:
-        self.size = size
-        self.board = board
-        if initial:
+    """The constructor can be called in one of two ways:
+    - with a board list and an int size, to construct a Board object for the 
+      first time
+    - with a Board object and an action, to construct a Board object from the 
+      previous one, after performing action"""
+    def __init__(self, board, size=None, action=None):
+        if not action:
+            self.size = size
+            self.board = board
             self.empty_cells = [
-                    (x,y) for x in range(self.size) for y in range(self.size) \
-                    if self.get_number(x,y) == self.EMPTY_CELL
+                (row, col)
+                for row in range(self.size)
+                for col in range(self.size)
+                if self.board[row][col] == self.EMPTY_CELL
             ]
             self.columns = set()
             self.rows = set()
@@ -62,25 +71,23 @@ class Board:
                     self.rows.add(self.get_bin_row(x))
                 if self.full_check(self.get_col_count(x)):
                     self.columns.add(self.get_bin_col(x))
+            return
 
-    def new_board(self, action: tuple):
-        """Cria um tabuleiro novo após aplicar a ação ao tabuleiro pai."""
-        aux = [[col for col in row] for row in self.board]
-        x,y,val = action
-        aux[x][y] = val
-        new_board = Board(aux, self.size)
+        self.size = board.size
 
-        new_board.empty_cells = self.empty_cells.copy()
-        new_board.rows = self.rows.copy()
-        new_board.columns = self.columns.copy()
-        
-        new_board.empty_cells.remove((x, y))
-        if new_board.full_check(new_board.get_row_count(x)):
-            new_board.rows.add(new_board.get_bin_row(x))
-        if new_board.full_check(new_board.get_col_count(y)):
-            new_board.columns.add(new_board.get_bin_col(y))
+        x, y, value = action
+        self.board = [[cell for cell in row] for row in board.board]
+        self.board[x][y] = value
 
-        return new_board
+        self.empty_cells = board.empty_cells.copy()
+        self.rows = board.rows.copy()
+        self.columns = board.columns.copy()
+
+        self.empty_cells.remove((x, y))
+        if self.full_check(self.get_row_count(x)):
+            self.rows.add(self.get_bin_row(x))
+        if self.full_check(self.get_col_count(y)):
+            self.columns.add(self.get_bin_col(y))
 
     def get_number(self, row: int, col: int) -> int:
         """Devolve o valor na respetiva posição do tabuleiro."""
@@ -203,7 +210,7 @@ class Board:
         board = ()
         for line in sys.stdin.readlines():
             board += (list(map(int, line.split())),)
-        return Board(board, n, initial=True)
+        return Board(board, n)
 
     def __str__(self):
         """Imprime o tabuleiro."""
@@ -239,7 +246,8 @@ class Takuzu(Problem):
         'state' passado como argumento. A ação a executar deve ser uma
         das presentes na lista obtida pela execução de
         self.actions(state)."""
-        new_board = state.board.new_board(action)
+        board = state.board
+        new_board = Board(board, action)
         return TakuzuState(new_board)
 
     def goal_test(self, state: TakuzuState):
