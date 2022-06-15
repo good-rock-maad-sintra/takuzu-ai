@@ -249,25 +249,33 @@ class Takuzu(Problem):
         """Heuristic function utilized for the A* search."""
 
         def calc_line_constraint(node: Node):
+            # TODO: docstring
             board = node.state.board
             x, y, val = node.action
-            row_ct, col_ct = board.get_row_count(x), board.get_col_count(y)
-            return (col_ct[val] / (col_ct[val] + col_ct[1-val]) + \
-                    row_ct[val] / (row_ct[val] + row_ct[1-val])) / 2
+            row_count, col_count = board.get_row_count(x), board.get_col_count(y)
+            col_tendency = col_count[val] / (col_count[val] + col_count[1 - val])
+            row_tendency = row_count[val] / (row_count[val] + row_count[1 - val])
+            return (col_tendency + row_tendency) / 2
 
         def calc_adj_constraint(node: Node):
-            # TODO
+            """Returns the number of adjacent cells with the same value
+            as the value of the action performed."""
+            board = node.state.board
+            x, y, val = node.action
+            vertical_adjacents = board.adjacent_vertical_numbers(x, y)
+            horizontal_adjacents = board.adjacent_horizontal_numbers(x, y)
+            
+            return vertical_adjacents.count(val) + horizontal_adjacents.count(val)
 
         def calc_weight(node: Node):
+            """Calculates the 'weight' of a given node: heavier nodes are the
+            ones in which the action performed to get to them caused more
+            constrains to the board (thus reducing the branching factor)."""
             action = node.action
-            if action == None:
-                return 0
-            if self.impossible(action, node.state):
-                return 1
-            elif self.mandatory(action, node.state):
+            if not action or self.mandatory(action, node.state):
                 return 0
             return (calc_line_constraint(node) + calc_adj_constraint(node)) / 2
-
+        
         return calc_weight(node) * len(board.empty_cells)
 
     def impossible(self, action: tuple, state: TakuzuState) -> bool:
@@ -309,7 +317,7 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = depth_first_tree_search(takuzu)
+    goal = greedy_search(takuzu)
     if goal:
         print(goal.state.board)
     else:
