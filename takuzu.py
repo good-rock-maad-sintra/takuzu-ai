@@ -7,6 +7,7 @@
 # 99256 João Rocha
 
 import sys
+from math import ceil
 from search import (
     Problem,
     Node,
@@ -15,12 +16,6 @@ from search import (
     depth_first_tree_search,
     greedy_search,
 )
-
-# "Util" function which isn't in utils.py (and we can't import math)
-# Useful because of cases where the board has an odd size
-def ceiling(n: int, m: int) -> int:
-    """Returns the ceiling of n // m."""
-    return (n + m - 1) // m
 
 class TakuzuState:
     state_id = 0
@@ -57,7 +52,7 @@ class Board:
                 (row, col)
                 for row in range(self.size)
                 for col in range(self.size)
-                if self.board[row][col] == self.EMPTY_CELL
+                if self.is_empty(self.get_number(row, col))
             ]
             self.columns = set()
             self.rows = set()
@@ -87,6 +82,10 @@ class Board:
         if not 0 <= row < self.size or not 0 <= col < self.size:
             return None
         return self.board[row][col]
+    
+    def is_empty(self, val: int) -> bool:
+        """Returns whether the cell with the specified value 'val' is empty."""
+        return val == self.EMPTY_CELL
 
     def adjacent_vertical_numbers(self, row: int, col: int) -> tuple:
         """Returns the values of the cells imediately above and below of (row, col)."""
@@ -121,7 +120,7 @@ class Board:
         count = [0, 0]
         for col in range(self.size):
             val = self.get_number(row, col)
-            if val == self.EMPTY_CELL:
+            if self.is_empty(val):
                 continue
             count[val] += 1
         return count
@@ -131,7 +130,7 @@ class Board:
         count = [0, 0]
         for row in range(self.size):
             val = self.get_number(row, col)
-            if val == self.EMPTY_CELL:
+            if self.is_empty(val):
                 continue
             count[val] += 1
         return count
@@ -143,7 +142,7 @@ class Board:
         rows which are either full or will be full after performing action."""
         res = 0b0
         for x in range(self.size):
-            if self.get_number(row, x) == self.EMPTY_CELL:
+            if self.is_empty(self.get_number(row, x)):
                 if action != None and action[0] == row and action[1] == x:
                     res |= (action[2] << x)
                 else:
@@ -159,7 +158,7 @@ class Board:
         which are either full or will be full after performing action."""
         res = 0b0
         for x in range(self.size):
-            if self.get_number(x, col) == self.EMPTY_CELL:
+            if self.is_empty(self.get_number(x, col)):
                 if action != None and action[0] == x and action[1] == col:
                     res |= (action[2] << x)
                 else:
@@ -251,8 +250,8 @@ class Takuzu(Problem):
         def calc_line_constraint(node: Node):
             # TODO: docstring
             board = node.state.board
-            x, y, val = node.action
-            row_count, col_count = board.get_row_count(x), board.get_col_count(y)
+            row, col, val = node.action
+            row_count, col_count = board.get_row_count(row), board.get_col_count(col)
             col_tendency = col_count[val] / (col_count[val] + col_count[1 - val])
             row_tendency = row_count[val] / (row_count[val] + row_count[1 - val])
             return (col_tendency + row_tendency) / 2
@@ -261,9 +260,9 @@ class Takuzu(Problem):
             """Returns the number of adjacent cells with the same value
             as the value of the action performed."""
             board = node.state.board
-            x, y, val = node.action
-            vertical_adjacents = board.adjacent_vertical_numbers(x, y)
-            horizontal_adjacents = board.adjacent_horizontal_numbers(x, y)
+            row, col, val = node.action
+            vertical_adjacents = board.adjacent_vertical_numbers(row, col)
+            horizontal_adjacents = board.adjacent_horizontal_numbers(row, col)
             
             return vertical_adjacents.count(val) + horizontal_adjacents.count(val)
 
@@ -293,8 +292,8 @@ class Takuzu(Problem):
             return True
 
         row_count, col_count = board.get_row_count(row), board.get_col_count(col)
-        ceil = ceiling(board.size, 2)
-        if row_count[value] >= ceil or col_count[value] >= ceil:
+        cap = ceil(board.size / 2)
+        if row_count[value] >= cap or col_count[value] >= cap:
             return True
         if board.action_creates_equal_lines(row_count, col_count, action):
             return True
@@ -317,7 +316,7 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = greedy_search(takuzu)
+    goal = depth_first_tree_search(takuzu)
     if goal:
         print(goal.state.board)
     else:
