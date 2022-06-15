@@ -248,23 +248,27 @@ class Takuzu(Problem):
     def h(self, node: Node) -> float:
         """Heuristic function utilized for the A* search."""
 
-        def line_heuristic(counts: list) -> float:
-            return 1 / (counts[0] + counts[1])
+        def calc_line_constraint(node: Node):
+            board = node.state.board
+            x, y, val = node.action
+            row_ct, col_ct = board.get_row_count(x), board.get_col_count(y)
+            return (col_ct[val] / (col_ct[val] + col_ct[1-val]) + \
+                    row_ct[val] / (row_ct[val] + row_ct[1-val])) / 2
 
-        action = node.action
-        if action == None:
-            return 0
-        board = node.state.board
-        if self.impossible(action, node.state):
-            return 1
-        elif self.mandatory(action, node.state):
-            return 0
+        def calc_adj_constraint(node: Node):
+            # TODO
 
-        result = 0
-        for x,y in board.empty_cells:
-            row_count, col_count = board.get_row_count(x), board.get_col_count(y)
-            result += line_heuristic(row_count) + line_heuristic(col_count)
-        return result / (2*board.size)
+        def calc_weight(node: Node):
+            action = node.action
+            if action == None:
+                return 0
+            if self.impossible(action, node.state):
+                return 1
+            elif self.mandatory(action, node.state):
+                return 0
+            return (calc_line_constraint(node) + calc_adj_constraint(node)) / 2
+
+        return calc_weight(node) * len(board.empty_cells)
 
     def impossible(self, action: tuple, state: TakuzuState) -> bool:
         """Checks whether executing 'action' is impossible or not - that is,
