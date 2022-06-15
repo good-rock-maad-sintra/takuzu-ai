@@ -1,2 +1,14 @@
 .vscode
-__pycache__
+__pycache__/
+docs/*bib
+docs/*.aux
+docs/*bbl
+docs/*blg
+docs/*log
+docs/*synctex.gz
+docs/*toc
+docs/*.fdb_latexmk
+docs/*.fls
+docs/*.out
+docs/*.run.xml
+docs/*.xdv
