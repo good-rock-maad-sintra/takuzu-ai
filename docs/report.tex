@@ -104,13 +104,21 @@
 
   Como a nossa procura é feita de forma a nunca alcançar estados inconsistentes, basta que o nosso \texttt{goal\_test} verifique se está num estado completo - um estado sem células vazias (nesse caso será uma solução).
 
-  % TODO: enquadrar a nossa solução no contexto de CSP's
+  Tendo em conta a prespetiva dos CSP's (Constraint Satisfaction Problems), temos que na nossa solução:
+  \begin{itemize}
+    \item A opção de devolver no máximo duas opções, ambas respetivas a apenas uma posição vazia, capitaliza na ideia de escolher uma variável de cada vez, visto que todas vão ter de ser escolhidas eventualmente. 
+      Como vimos em aula, isto pode reduzir o número de nós da árvore de procura em várias ordens de grandeza.
+    \item A opção de devolver as jogadas obrigatórias sempre que possível é uma aplicação da heurística LCV (Least Constraining Value).
+      De facto, ao escolhermos um valor obrigatório para a variável não estamos a impor qualquer condição ao tabuleiro que ainda não estivesse imposta (mesmo que indiretamente).
+  \end{itemize}
 
   \section*{Análise Experimental}
+
+  % hyperfine em cada procura com e sem branching factor a 2
 
   % Assinalar que o branching factor tem bastante relevância na diferença entre
   % procuras.
 
-  % hyperfine em cada procura com e sem branching factor a 2
+  \section*{Análise de Heurísticas}
   
 \end{document}
