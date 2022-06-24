@@ -88,37 +88,37 @@ class Board:
         return val == self.EMPTY_CELL
 
     def adjacent_vertical_numbers(self, row: int, col: int) -> tuple:
-        """Returns the values of the cells imediately above and below of (row, col)."""
+        """Returns the values of the cells immediately above and below of (row, col)."""
         if not 0 <= row < self.size or not 0 <= col < self.size:
             return None
         return (self.get_number(row - 1, col), self.get_number(row + 1, col))
 
     def adjacent_horizontal_numbers(self, row: int, col: int) -> tuple:
-        """Returns the values of the cells imediately right and left of (row, col)."""
+        """Returns the values of the cells immediately right and left of (row, col)."""
         if not 0 <= row < self.size or not 0 <= col < self.size:
             return None
         return (self.get_number(row, col - 1), self.get_number(row, col + 1))
 
     def adjacent_left_numbers(self, row: int, col: int) -> tuple:
-        """Returns the values of the two cells imediately to the left of (row, col)."""
+        """Returns the values of the two cells immediately to the left of (row, col)."""
         if not 0 <= row < self.size or not 0 <= col < self.size:
             return None
         return (self.get_number(row, col - 2), self.get_number(row, col - 1))
 
     def adjacent_right_numbers(self, row: int, col: int) -> tuple:
-        """Returns the values of the two cells imediately to the right of (row, col)."""
+        """Returns the values of the two cells immediately to the right of (row, col)."""
         if not 0 <= row < self.size or not 0 <= col < self.size:
             return None
         return (self.get_number(row, col + 1), self.get_number(row, col + 2))
 
     def adjacent_up_numbers(self, row: int, col: int) -> tuple:
-        """Returns the values of the two cells imediately above (row, col)."""
+        """Returns the values of the two cells immediately above (row, col)."""
         if not 0 <= row < self.size or not 0 <= col < self.size:
             return None
         return (self.get_number(row - 2, col), self.get_number(row - 1, col))
 
     def adjacent_down_numbers(self, row: int, col: int) -> tuple:
-        """Returns the values of the two cells imediately below (row, col)."""
+        """Returns the values of the two cells immediately below (row, col)."""
         if not 0 <= row < self.size or not 0 <= col < self.size:
             return None
         return (self.get_number(row + 1, col), self.get_number(row + 2, col))
