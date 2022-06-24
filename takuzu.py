@@ -204,9 +204,9 @@ class Board:
         rows and/or columns in the board (fully filled)."""
         row, col, _ = action
         return (
-            (self.almost_full_check(row_count) and \
-            self.get_bin_row(row, action) in self.rows) or \
-            (self.almost_full_check(col_count) and \
+            (self.almost_full_check(row_count) and
+            self.get_bin_row(row, action) in self.rows) or
+            (self.almost_full_check(col_count) and
             self.get_bin_col(col, action) in self.columns)
         )
 
@@ -288,14 +288,14 @@ class Takuzu(Problem):
             board = node.state.board
             row, col, val = node.action
             adj_pairs = [
-                board.adjacent_up_numbers(row, col), \
-                board.adjacent_right_numbers(row, col), \
-                board.adjacent_down_numbers(row, col), \
+                board.adjacent_up_numbers(row, col),
+                board.adjacent_right_numbers(row, col),
+                board.adjacent_down_numbers(row, col),
                 board.adjacent_left_numbers(row, col)
             ]
+            looking_for = [(val, board.EMPTY_CELL), (board.EMPTY_CELL, val)]
             
-            return sum(map(lambda x: int(x in \
-                [(val, board.EMPTY_CELL), (board.EMPTY_CELL, val)]), adj_pairs))
+            return sum(map(lambda x: int(x in looking_for), adj_pairs))
 
         def calc_weight(node: Node):
             """Calculates the 'weight' of a given node: heavier nodes are the
@@ -347,8 +347,8 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = astar_search(takuzu)
+    goal = greedy_search(takuzu)
     if goal:
         print(goal.state.board)
     else:
-        print('No goal')
+        print('The given takuzu board doesn\'t have a solution.')
