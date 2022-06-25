@@ -14,6 +14,7 @@
 \usepackage{xcolor}
 \usepackage{adjustbox}
 \usepackage{booktabs}
+\usepackage{float}
 
 \graphicspath{ {./} }
 \hypersetup{
@@ -68,7 +69,16 @@ Chegar a um estado completo é bastante fácil, bastando para tal preencher toda
 Para garantir que atingimos um estado completo \textbf{e} consistente, basta então
 garantir que nunca fazemos uma jogada que nos leve a um estado inconsistente.
 
-% TODO: se tivermos espaço, adicionar aqui um exemplo de um tabuleiro completamente preenchido?
+% NOTE: se tivermos espaço, mantemos isto, caso contrário apagamos, não é assim tão relevante
+
+\begin{figure}[H]
+      \centering
+      \includesvg[width=0.1\textwidth]{takuzu-initial-state}
+      \hspace*{1cm}
+      \includesvg[width=0.1\textwidth]{takuzu-final-state}
+      \caption{Estado inicial e final de um possível \textit{puzzle} takuzu consistente}
+      \label{fig:takuzu-initial-state}
+\end{figure}
 
 Para nos ajudar a resolver o problema em mãos, vamos suportar-nos em algumas definições auxiliares.
 Dizemos que uma jogada é \textbf{impossível} se a execução desta levar a um estado
