@@ -184,14 +184,7 @@ com a implementação original: o único caso em que a diferença é de facto no
 é no \textbf{sexto teste público}, onde o tempo de execução varia entre cerca de
 900ms, na DFS, para tempos enormes, nas outras procuras.
 
-O teste em questão não
-aparenta ter pormenores significativamente extravagantes, em comparação com os
-outros tabuleiros de teste, exceto a diferença entre o \textbf{número de nós gerados e expandidos},
-que só acontece neste teste e em dois outros (testes esses que não
-veem o seu tempo de execução aumentar a este nível).
-Estamos em crer que a nossa implementação só ficaria verdadeiramente
-posta à prova com tabuleiros de teste muito grandes e bastante vazios, por forma
-a evidenciar a eficiência da solução que escolhe uma variável por nível.
+% explicar pouca diferença entre solução boa e má
 
 A heurística \textbf{LCV} surtiu, contrastando com a utilização de 1 variável por nível,
 uma diferença drástica em comparação com a sua não-utilização: apenas os
@@ -201,16 +194,10 @@ incluída, os resultados experimentais são os descritos na \textbf{Tabela 3}.
 
 \section*{Conclusão}
 
-A heurística obtida na segunda secção, apesar de fazer (na nossa opinião) bastante
-sentido quando aplicada ao problema em questão, não surte efeitos particularmente
-positivos na execução da solução, quando comparada com a procura em profundidade
-primeiro - possivelmente em tabuleiros diferentes tal ocorreria.
+A heurística escolhida não leva a melhorias significativas (na verdade é pior que uma DFS), visto que este problema, por natureza não benefícia de procuras informadas.
+Isto verifica-se uma vez que a distância ao objetivo é predeterminada.
 
-Na solução submetida para avaliação automática, via \textit{Mooshak}, optámos
-por utilizar a versão original, com 1 variável por nível, utilizando uma
-procura em profundidade primeiro (que, segundo os resultados experimentais obtidos,
-apresentava o melhor desempenho, ainda que a diferença para a BFS seja
-praticamente negligenciável).
+ Na solução submetida para avaliação automática, via \textit{Mooshak}, optámos por utilizar a versão original, com 1 variável por nível, utilizando uma procura em profundidade primeiro (por ser a mais eficiente).
 
 % TODO: falar de completude e consistência e cenas para cada procura
 
