@@ -10,7 +10,7 @@ for search in "${searches[@]}"; do
   sed -i 's/goal = xxx/goal = '$search'/g' takuzu.py
   for i in {01..13}; do
     echo "Running $search on $i"
-    timeout 2m hyperfine --warmup 30 -m 200 "python takuzu.py < testes-takuzu/input_T$i" --export-csv /tmp/takuzu.csv
+    hyperfine --warmup 5 -m 25 "python takuzu.py < testes-takuzu/input_T$i" --export-csv /tmp/takuzu.csv
     # get the mean from takuzu.csv - it's the second column, second row
     mean=$(cat /tmp/takuzu.csv | cut -d',' -f2 | head -n2 | tail -n1)
     # the mean is in seconds: convert to ms

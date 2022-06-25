@@ -146,16 +146,12 @@ Como a procura A* escolhe nós por ordem crescentes da função $f(n) = g(n) + h
 Para isto, calculamos um "peso" que corresponde à média de duas componentes:
 \begin{itemize}
       \item O constrangimento ao longo da linha/coluna da posição onde foi executada a última jogada, causado por essa jogada.
-            Idealizamos que uma jogada é tão mais constringente sobre uma linha quão mais perto deixar essa linha de estar saturada do valor que acabou de ser introduzido.
-            Idealizamos que uma jogada é tão mais constringente sobre uma linha quão mais perto deixar essa linha de estar saturada do valor que acabou de ser introduzido.
-            Idealizamos que uma jogada é tão mais constringente sobre uma linha quão mais perto deixar essa linha de estar saturada do valor que acabou de ser introduzido.
-            Idealizamos que uma jogada é tão mais constringente sobre uma linha quão mais perto deixar essa linha de estar saturada do valor que acabou de ser introduzido.
-            Idealizamos que uma jogada é tão mais constringente sobre uma linha quão mais perto deixar essa linha de estar saturada do valor que acabou de ser introduzido.
-            Assim, calculamos o constrangimento sobre uma linha tirando a proporção de valores preenchidos que estão preenchidos com o valor que acabou de ser inserido.
-            O valor final desta componente é a média entre o constrangimento sobre a linha e o constrangimento sobre a coluna.
+        Idealizamos que uma jogada é tão mais constringente sobre uma linha quão mais perto deixar essa linha de estar saturada do valor que acabou de ser introduzido. 
+        Assim, calculamos o constrangimento sobre uma linha tirando a proporção de valores preenchidos que estão preenchidos com o valor que acabou de ser inserido.
+        O valor final desta componente é a média entre o constrangimento sobre a linha e o constrangimento sobre a coluna.
       \item O constrangimento na "vizinhança" da posição onde foi executada a última jogada, causado por essa jogada.
-            Uma jogada é tão mais constringente sobre a sua vizinhança quantas mais jogadas se tornarem obrigatórias para prevenir 3 símbolos idênticos consecutivos.
-            Esta componente calcula então o número média de tais jogadas originadas.
+        Uma jogada é tão mais constringente sobre a sua vizinhança quantas mais jogadas se tornarem obrigatórias para prevenir 3 símbolos idênticos consecutivos.
+        Esta componente calcula então o número média de tais jogadas originadas.
 \end{itemize}
 
 O valor final da heurística é então o peso - que corresponde à média das duas componentes acima - multiplicado pelo número de células vazias.
@@ -318,8 +314,7 @@ praticamente negligenciável).
 
 \vspace*{1cm}
 
-\textbf{Nota}: Todas as entradas identificadas com \texttt{-} nas tabelas acima correspondem a
-cenários onde a procura não conseguiu resolver o teste proposto em tempo útil (cada
-teste foi deixado a correr durante 2 minutos).
+\textbf{Nota}: Todas as entradas com \texttt{-} nas tabelas acima correspondem a
+cenários onde a procura não conseguiu resolver o teste proposto em tempo útil - cada teste foi deixado a correr durante 2 minutos.
 
 \end{document}
