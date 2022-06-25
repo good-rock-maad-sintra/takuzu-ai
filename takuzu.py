@@ -349,7 +349,7 @@ if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
     takuzu = InstrumentedProblem(takuzu)
-    goal = xxx(takuzu)
+    goal = greedy_search(takuzu)
     if goal:
         # print(goal.state.board)
         print()
