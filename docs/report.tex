@@ -46,28 +46,23 @@
 
 \section*{Descrição do Problema e da Solução}
 
-Foi proposta a elaboração de um programa, em \texttt{Python}, que resolvesse, de
-forma eficiente, o \textit{puzzle} binário \textit{takuzu}.
-Este \textit{puzzle} pede-nos para encontrar um tabuleiro, totalmente preenchido
-com 0's e 1's, partindo de uma configuração inicial, que satisfaça as seguintes restrições:
+Foi proposta a elaboração de um programa, em \texttt{Python}, que resolvesse, de forma eficiente, o \textit{puzzle} binário \textit{takuzu}.
+ Este \textit{puzzle} pede-nos para encontrar um tabuleiro, totalmente preenchido com 0's e 1's, partindo de uma configuração inicial, que satisfaça as seguintes restrições:
 \begin{itemize}
       \item Não podem haver 3 símbolos (0's ou 1's) iguais consecutivos;
-      \item A diferença entre o número de 0's e 1's numa dada linha ou coluna deve
-            ser no máximo 1: 0 em tabuleiros de tamanho par, 1 nos de tamanho ímpar;
+      \item A diferença entre o número de 0's e 1's numa dada linha ou coluna deve ser no máximo 1: 0 em tabuleiros de tamanho par, 1 nos de tamanho ímpar;
       \item Todas as linhas devem ser diferentes entre si;
       \item Todas as colunas devem ser diferentes entre si.
 \end{itemize}
 
-No contexto da matéria de Inteligência Artificial, isto consiste em encontrar um
-estado \textbf{completo} e \textbf{consistente}, onde:
+No contexto da matéria de Inteligência Artificial, isto consiste em encontrar um estado \textbf{completo} e \textbf{consistente}, onde:
 \begin{itemize}
       \item Um estado diz-se \textbf{completo} se não tiver células vazias;
       \item Um estado diz-se \textbf{consistente} se satisfizer as 4 regras mencionadas acima.
 \end{itemize}
 
 Chegar a um estado completo é bastante fácil, bastando para tal preencher todas as células do tabuleiro.
-Para garantir que atingimos um estado completo \textbf{e} consistente, basta então
-garantir que nunca fazemos uma jogada que nos leve a um estado inconsistente.
+ Para garantir que atingimos um estado completo \textbf{e} consistente, basta então garantir que nunca fazemos uma jogada que nos leve a um estado inconsistente.
 
 % NOTE: se tivermos espaço, mantemos isto, caso contrário apagamos, não é assim tão relevante
 
@@ -81,69 +76,39 @@ garantir que nunca fazemos uma jogada que nos leve a um estado inconsistente.
 \end{figure}
 
 Para nos ajudar a resolver o problema em mãos, vamos suportar-nos em algumas definições auxiliares.
-Dizemos que uma jogada é \textbf{impossível} se a execução desta levar a um estado
-inconsistente (o estado quebra alguma das regras supra-mencionadas, portanto).
-Destas regras, a única cuja verificação merece alguma explicação é a da identificação
-linhas/colunas repetidas.
-Para garantir que tal nunca acontece, guardamos (em \texttt{Board}) a qualquer momento
-dois \textit{sets}, cada um guardando \textit{strings} binárias que representam,
-respetivamente, as linhas e colunas que já estão totalmente preenchidas no tabuleiro.
-Esta solução com \textit{strings} binárias permite aumentar consideravelmente a
-\textbf{eficiência} da verificação de igualdade entre linhas/colunas: é mais eficiente
-comparar \textit{strings} que tuplos, por exemplo.
+ Dizemos que uma jogada é \textbf{impossível} se a execução desta levar a um estado inconsistente (o estado quebra alguma das regras supra-mencionadas, portanto).
+ Destas regras, a única cuja verificação merece alguma explicação é a da identificação linhas/colunas repetidas.
+ Para garantir que tal nunca acontece, guardamos (em \texttt{Board}) a qualquer momento dois \textit{sets}, cada um guardando \textit{strings} binárias que representam, respetivamente, as linhas e colunas que já estão totalmente preenchidas no tabuleiro.
+ Esta solução com \textit{strings} binárias permite aumentar consideravelmente a \textbf{eficiência} da verificação de igualdade entre linhas/colunas: é mais eficiente comparar \textit{strings} que tuplos, por exemplo.
 
-As jogadas podem ainda ser \textbf{possíveis} (corresponde apenas a não ser impossível)
-ou \textbf{obrigatórias} (se forem possíveis e o seu conjugado não for).
-Aqui, o conjugado de uma jogada corresponde à jogada que atua sobre a mesma célula,
-mas com o valor \textbf{conjugado}: isto é, se uma jogada coloca 0 na posição (1,3),
-a sua conjugada coloca 1 nessa mesma posição.
+As jogadas podem ainda ser \textbf{possíveis} (corresponde apenas a não ser impossível) ou \textbf{obrigatórias} (se forem possíveis e o seu conjugado não for).
+ Aqui, o conjugado de uma jogada corresponde à jogada que atua sobre a mesma célula, mas com o valor \textbf{conjugado}: isto é, se uma jogada coloca 0 na posição (1,3), a sua conjugada coloca 1 nessa mesma posição.
 
-Em cada estado, verificamos sempre se há alguma célula vazia em que ambas as jogadas
-sejam impossíveis.
-Neste caso, qualquer jogada nessa célula levaria a um estado em que o tabuleiro é
-inconsistente e não vale a pena prosseguir neste ramo da árvore de procura.
+Em cada estado, verificamos sempre se há alguma célula vazia em que ambas as jogadas sejam impossíveis.
+ Neste caso, qualquer jogada nessa célula levaria a um estado em que o tabuleiro é inconsistente e não vale a pena prosseguir neste ramo da árvore de procura.
 
 Sempre que haja ações obrigatórias por realizar, num dado estado, realizamo-las.
-Isto é apenas lógico, visto que, por definição de obrigatoriedade, vamos ter de
-as executar para chegar a qualquer tabuleiro solução (considerando o ramo
-atual da árvore de procura, claro: uma jogada obrigatória num dado ramo poderá
-não o ser na solução).
-Assim, antecipando a sua execução, \textbf{reduzimos o número de nós da nossa árvore de procura}.
+ Isto é apenas lógico, visto que, por definição de obrigatoriedade, vamos ter de as executar para chegar a qualquer tabuleiro solução (considerando o ramo atual da árvore de procura, claro: uma jogada obrigatória num dado ramo poderá não o ser na solução).
+ Assim, antecipando a sua execução, \textbf{reduzimos o número de nós da nossa árvore de procura}.
 
-Sempre que tal não é possível, escolhemos um par de ações possíveis para qualquer
-célula vazia do tabuleiro (note-se que uma vez que não há jogadas obrigatórias -
-células em que apenas uma jogada é possível - nem células em que não seja possível jogar,
-é necessariamente verdade que em qualquer célula vazia podemos colocar tanto um 0 como um 1).
+Sempre que tal não é possível, escolhemos um par de ações possíveis para qualquer célula vazia do tabuleiro (note-se que uma vez que não há jogadas obrigatórias - células em que apenas uma jogada é possível - nem células em que não seja possível jogar, é necessariamente verdade que em qualquer célula vazia podemos colocar tanto um 0 como um 1).
 
-Esta decisão de devolver sempre no máximo duas ações traduz-se em que o \textbf{\textit{branching factor}}
-da nossa árvore seja 2.
-Como vamos ver na análise experimental, isto é fundamental para a execução em tempo
-eficiente da nossa solução.
+Esta decisão de devolver sempre no máximo duas ações traduz-se em que o \textbf{\textit{branching factor}} da nossa árvore seja 2.
+ Como vamos ver na análise experimental, isto é fundamental para a execução em tempo eficiente da nossa solução.
 
-Como a nossa procura é feita de forma a nunca alcançar estados inconsistentes, basta
-que o nosso \texttt{goal\_test} verifique se está num estado completo - um estado
-sem células vazias (nesse caso será necessariamente uma solução).
+Como a nossa procura é feita de forma a nunca alcançar estados inconsistentes, basta que o nosso \texttt{goal\_test} verifique se está num estado completo - um estado sem células vazias (nesse caso será necessariamente uma solução).
 
-Tendo em conta a perspetiva dos CSP's (\textit{Constraint Satisfaction Problems})
-abordada em aula, temos que na nossa solução:
+Tendo em conta a perspetiva dos CSP's (\textit{Constraint Satisfaction Problems}) abordada em aula, temos que na nossa solução:
 \begin{itemize}
-      \item A opção de devolver \textbf{no máximo duas opções}, ambas respetivas a apenas uma
-            posição vazia, capitaliza na ideia de escolher uma variável de cada vez, visto
-            que todas vão ter de ser escolhidas eventualmente.
-            Como vimos em aula, isto pode reduzir o número de nós da árvore de procura
-            em várias ordens de grandeza.
-      \item A opção de devolver as jogadas obrigatórias sempre que possível é uma
-            aplicação da heurística LCV (\textit{Least Constraining Value}).
-            De facto, ao escolhermos um valor obrigatório para a variável não estamos
-            a impor qualquer condição ao tabuleiro que ainda não estivesse imposta
-            (mesmo que indiretamente).
+      \item A opção de devolver \textbf{no máximo duas opções}, ambas respetivas a apenas uma posição vazia, capitaliza na ideia de escolher uma variável de cada vez, visto que todas vão ter de ser escolhidas eventualmente.
+        Como vimos em aula, isto pode reduzir o número de nós da árvore de procura em várias ordens de grandeza.
+      \item A opção de devolver as jogadas obrigatórias sempre que possível é uma aplicação da heurística LCV (\textit{Least Constraining Value}).
+        De facto, ao escolhermos um valor obrigatório para a variável não estamos a impor qualquer condição ao tabuleiro que ainda não estivesse imposta (mesmo que indiretamente).
 \end{itemize}
 
 \section*{Função Heurística}
 
-Na nossa escolha de função heurística, insistimos na ideia do LCV.
-Como a procura A* escolhe nós por ordem crescentes da função $f(n) = g(n) + h(n)$, aos valores mais constringentes devem estar atribuídos valores da heurística maiores.
-Para isto, calculamos um "peso" que corresponde à média de duas componentes:
+Na nossa escolha de função heurística, insistimos na ideia do LCV. Como a procura A* escolhe nós por ordem crescentes da função $f(n) = g(n) + h(n)$, aos valores mais constringentes devem estar atribuídos valores da heurística maiores. Para isto, calculamos um "peso" que corresponde à média de duas componentes:
 \begin{itemize}
       \item O constrangimento ao longo da linha/coluna da posição onde foi executada a última jogada, causado por essa jogada.
         Idealizamos que uma jogada é tão mais constringente sobre uma linha quão mais perto deixar essa linha de estar saturada do valor que acabou de ser introduzido. 
@@ -169,37 +134,29 @@ Porém, como observamos na análise experimental, isto nem sequer leva a melhore
 
 \section*{Análise Experimental}
 
-Tendo em conta a implementação descrita na página anterior, foram obtidos
-os resultados experimentais (para os testes públicos fornecidos pela docência)
-descritos na \textbf{Tabela 1}. Note-se que a coluna \texttt{Tempo de Execução (ms)}
-corresponde à media de tempo de execução de cada teste, calculada recorrendo à ferramenta
-\texttt{hyperfine} (com 250 execuções por teste, por procura). A heurística
-utilizada para as procuras A* e Gananciosa é a referida na secção anterior.
+Tendo em conta a implementação descrita na página anterior, foram obtidos os resultados experimentais (para os testes públicos fornecidos pela docência) descritos na \textbf{Tabela 1}.
+ Note-se que a coluna \texttt{Tempo de Execução (ms)} corresponde à media de tempo de execução de cada teste, calculada recorrendo à ferramenta \texttt{hyperfine} (com 250 execuções por teste, por procura).
+ A heurística utilizada para as procuras A* e Gananciosa é a referida na secção anterior.
 
-Considerámos, aquando da implementação da solução, que escolher \textbf{uma variável por nível}
-ajudaria de forma drástica quanto à eficiência do problema. Ao analisar os resultados
-obtidos (encontram-se na \textbf{Tabela 2}) com esta variação da solução, ficámos
-relativamente surpreendidos com o facto das diferenças terem sido mínimas em comparação
-com a implementação original: o único caso em que a diferença é de facto notória
-é no \textbf{sexto teste público}, onde o tempo de execução varia entre cerca de
-900ms, na DFS, para tempos enormes, nas outras procuras.
+Teoricamente, o facto de escolhermos \textbf{uma variável por nível} ajudaria de forma drástica quanto à eficiência do problema.
+Porém, verificamos quanto aos testes usados que, dos 13, apenas os testes 3, 5 e 6 requerem alguma decisão no caminho para uma solução.
+Mesmo os testes 3 e 5 exigem um número bastante limitado de decisões.
+Sendo assim, com a aplicação da heurística LCV, a diferença entre as várias procuras é nula em quase todos os testes e limitada em todos menos um.
+De facto, observa-se que nos testes 3 e 5, a não escolha de uma variável por nível leva a um aumento ligeiro no tempo e no número de nós gerados e expandidos quando se usa procuras que não a DFS.
+Claramente, é no entanto no teste 6 que se observa a única alteração significativa, em que o teste só executa em tempo útil quando usamos uma DFS.
 
-% explicar pouca diferença entre solução boa e má
-
-A heurística \textbf{LCV} surtiu, contrastando com a utilização de 1 variável por nível,
-uma diferença drástica em comparação com a sua não-utilização: apenas os
-dois primeiros testes corriam em tempo útil, para qualquer procura, considerando
-também a ausência da lógica de 1 variável por nível. Estando essa lógica
-incluída, os resultados experimentais são os descritos na \textbf{Tabela 3}.
+A heurística \textbf{LCV} surtiu, contrastando com a utilização de 1 variável por nível, uma diferença drástica em comparação com a sua não-utilização: apenas os dois primeiros testes corriam em tempo útil, para qualquer procura, considerando também a ausência da lógica de 1 variável por nível.
+ Estando essa lógica incluída, os resultados experimentais são os descritos na \textbf{Tabela 3}.
 
 \section*{Conclusão}
+
+A nossa solução é, para todas as procuras, completa, visto que, na pior das hipóteses, analisa todos os tabuleiros possíveis para o tabuleiro inicial.
+ Pode-se ainda dizer que é ótima, também para todas as procuras, já que a distância ao objetivo é predeterminada.
 
 A heurística escolhida não leva a melhorias significativas (na verdade é pior que uma DFS), visto que este problema, por natureza não benefícia de procuras informadas.
 Isto verifica-se uma vez que a distância ao objetivo é predeterminada.
 
  Na solução submetida para avaliação automática, via \textit{Mooshak}, optámos por utilizar a versão original, com 1 variável por nível, utilizando uma procura em profundidade primeiro (por ser a mais eficiente).
-
-% TODO: falar de completude e consistência e cenas para cada procura
 
 \section*{Anexos}
 
