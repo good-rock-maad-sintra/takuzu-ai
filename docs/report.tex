@@ -131,6 +131,8 @@ abordada em aula, temos que na nossa solução:
 
 \section*{Função Heurística}
 
+% TODO: brilha rocha
+
 \section*{Análise Experimental}
 
 Tendo em conta a implementação descrita na página anterior, foram obtidos
@@ -140,33 +142,43 @@ corresponde à media de tempo de execução de cada teste, calculada recorrendo 
 \texttt{hyperfine} (com 250 execuções por teste, por procura). A heurística
 utilizada para as procuras A* e Gananciosa é a referida na secção anterior.
 
-Note-se que caso não se escolha apenas um par de ações possíveis por nível da árvore,
-mas sim \textit{todas} as ações possíveis nesse nível, vamos ver uma alteração
-drástica de desempenho para as procuras cegas. As procuras informadas conseguem, contudo,
-manter o número de nós gerados e expandidos consistente com a implementação anterior.
-Os resultados experimentais relativos a esta implementação encontram-se na \textbf{Tabela 2}.
+Considerámos, aquando da implementação da solução, que escolher \textbf{uma variável por nível}
+ajudaria de forma drástica quanto à eficiência do problema. Ao analisar os resultados
+obtidos (encontram-se na \textbf{Tabela 2}) com esta variação da solução, ficámos
+relativamente surpreendidos com o facto das diferenças terem sido mínimas em comparação
+com a implementação original: o único caso em que a diferença é de facto notória
+é no \textbf{sexto teste público}, onde o tempo de execução varia entre cerca de
+900ms, na DFS, para tempos enormes, nas outras procuras.
 
-% TODO: alterar o texto de cima, a alteração drástica foi só no teste 6 kek (e para todos)
+O teste em questão não
+aparenta ter pormenores significativamente extravagantes, em comparação com os
+outros tabuleiros de teste, exceto a diferença entre o \textbf{número de nós gerados e expandidos},
+que só acontece neste teste e em dois outros (testes esses que não
+veem o seu tempo de execução aumentar a este nível).
+Estamos em crer que a nossa implementação só ficaria verdadeiramente
+posta à prova com tabuleiros de teste muito grandes e bastante vazios, por forma
+a evidenciar a eficiência da solução que escolhe uma variável por nível.
 
-Aqui, não faz particular sentido optar pela BFS (em detrimento da DFS): partindo
-de uma configuração inicial, com $n$ posições vazias, é claro que uma solução
-terá sempre de estar no nível $n$ da árvore de procura (não podendo estar mais
-acima), visto que vamos sempre ter de executar $n$ jogadas para chegar a uma
-solução. Assim sendo, os possíveis ganhos de uma procura em largura primeiro não são
-aqui sentidos.
+A heurística \textbf{LCV} surtiu, contrastando com a utilização de 1 variável por nível,
+uma diferença drástica em comparação com a sua não-utilização: apenas os
+dois primeiros testes corriam em tempo útil, para qualquer procura, considerando
+também a ausência da lógica de 1 variável por nível. Estando essa lógica
+incluída, os resultados experimentais são os descritos na \textbf{Tabela 3}.
 
-Adiciona-se ainda que, com um \textit{branching factor} tão pequeno (e com
-um número de nós igualmente pequeno) as quantidades de nós expandidos e gerados
-acabam por ser bastante próximas (e os tempos de execução obtidos também).
+\section*{Conclusão}
 
-% hyperfine em cada procura com e sem branching factor a 2
+A heurística obtida na segunda secção, apesar de fazer (na nossa opinião) bastante
+sentido quando aplicada ao problema em questão, não surte efeitos particularmente
+positivos na execução da solução, quando comparada com a procura em profundidade
+primeiro - possivelmente em tabuleiros diferentes tal ocorreria.
 
-% Assinalar que o branching factor tem bastante relevância na diferença entre
-% procuras.
+Na solução submetida para avaliação automática, via \textit{Mooshak}, optámos
+por utilizar a versão original, com 1 variável por nível, utilizando uma
+procura em profundidade primeiro (que, segundo os resultados experimentais obtidos,
+apresentava o melhor desempenho, ainda que a diferença para a BFS seja
+praticamente negligenciável).
 
 % TODO: falar de completude e consistência e cenas para cada procura
-
-% TODO: conclusão, falar da que optámos no fim
 
 \section*{Anexos}
 
@@ -198,8 +210,9 @@ acabam por ser bastante próximas (e os tempos de execução obtidos também).
 
 \vspace*{0.5cm}
 
-\centering
-Tabela 1: Resultados Experimentais, 1 variável por nível.
+\begin{center}
+      Tabela 1: Resultados Experimentais, 1 variável por nível.
+\end{center}
 
 \vspace*{1cm}
 
@@ -229,7 +242,45 @@ Tabela 1: Resultados Experimentais, 1 variável por nível.
 
 \vspace*{0.5cm}
 
-\centering
-Tabela 2: Resultados Experimentais, todas as ações possíveis por nível.
+\begin{center}
+      Tabela 2: Resultados Experimentais, todas as ações possíveis por nível.
+\end{center}
+
+\vspace*{1cm}
+
+\begin{adjustbox}{width={\textwidth}, totalheight={\textheight}, keepaspectratio}
+      \begin{tabular}{l cccc cccc cccc}
+            \toprule
+                  & \multicolumn{4}{c}{Tempo de Execução (ms)} & \multicolumn{4}{c}{Nós Gerados} & \multicolumn{4}{c}{Nós Expandidos}                                                                                  \\
+            \cmidrule(lr){2-5} \cmidrule(lr){6-9} \cmidrule(lr){10-13}
+            Teste & BFS                                        & DFS                             & A*                                 & Gananciosa & BFS & DFS  & A*    & Gananciosa & BFS & DFS  & A*    & Gananciosa \\
+            \midrule
+            01    & 76.747                                     & 75.894                          & 75.294                             & 73.152     & 132 & 14   & 54    & 14         & 85  & 7    & 40    & 7          \\
+            02    & 74.491                                     & 74.594                          & 74.677                             & 76.325     & 42  & 14   & 30    & 14         & 27  & 9    & 17    & 7          \\
+            03    & -                                          & 88.132                          & 9088.461                           & 148.721    & -   & 108  & 13750 & 464        & -   & 76   & 9726  & 320        \\
+            04    & -                                          & 82.285                          & 32412.935                          & 91.285     & -   & 64   & 23928 & 134        & -   & 43   & 14157 & 83         \\
+            05    & -                                          & 93.511                          & -                                  & 143.983    & -   & 110  & -     & 412        & -   & 66   & -     & 258        \\
+            06    & -                                          & 130.922                         & -                                  & -          & -   & 242  & -     & -          & -   & 179  & -     & -          \\
+            07    & -                                          & 604.342                         & -                                  & 4702.732   & -   & 1800 & -     & 8874       & -   & 1758 & -     & 6717       \\
+            08    & -                                          & 81.294                          & -                                  & 84.485     & -   & 38   & -     & 80         & -   & 21   & -     & 48         \\
+            09    & -                                          & -                               & -                                  & -          & -   & -    & -     & -          & -   & -    & -     & -          \\
+            10    & -                                          & -                               & -                                  & -          & -   & -    & -     & -          & -   & -    & -     & -          \\
+            11    & -                                          & -                               & -                                  & -          & -   & -    & -     & -          & -   & -    & -     & -          \\
+            12    & -                                          & -                               & -                                  & -          & -   & -    & -     & -          & -   & -    & -     & -          \\
+            13    & -                                          & -                               & -                                  & -          & -   & -    & -     & -          & -   & -    & -     & -          \\
+            \bottomrule
+      \end{tabular}
+\end{adjustbox}
+
+\vspace*{0.5cm}
+
+\begin{center}
+      Tabela 3: Resultados Experimentais, 1 variável por nível, sem LCV.
+\end{center}
+
+\vspace*{1cm}
+
+\textbf{Nota}: Todas as entradas com \texttt{-} nas tabelas acima correspondem a
+cenários onde a procura não conseguiu resolver o teste proposto em tempo útil.
 
 \end{document}

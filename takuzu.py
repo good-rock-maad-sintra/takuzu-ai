@@ -246,10 +246,10 @@ class Takuzu(Problem):
             ac0, ac1 = (row, col, 0), (row, col, 1)
             if self.impossible(ac0, state) and self.impossible(ac1, state):
                 return []
-            elif self.mandatory(ac0, state):
-                return [ac0]
-            elif self.mandatory(ac1, state):
-                return [ac1]
+            # elif self.mandatory(ac0, state):
+            #     return [ac0]
+            # elif self.mandatory(ac1, state):
+            #     return [ac1]
 
             if not ran_once:
                 possible = [ac0, ac1]
