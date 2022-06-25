@@ -347,7 +347,7 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = greedy_search(takuzu)
+    goal = breadth_first_tree_search(takuzu)
     if goal:
         print(goal.state.board)
     else:

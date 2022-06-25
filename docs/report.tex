@@ -110,8 +110,8 @@ Como a nossa procura é feita de forma a nunca alcançar estados inconsistentes,
 que o nosso \texttt{goal\_test} verifique se está num estado completo - um estado
 sem células vazias (nesse caso será necessariamente uma solução).
 
-Tendo em conta a perspetiva dos CSP's (Constraint Satisfaction Problems) abordada em aula,
-temos que na nossa solução:
+Tendo em conta a perspetiva dos CSP's (\textit{Constraint Satisfaction Problems})
+abordada em aula, temos que na nossa solução:
 \begin{itemize}
       \item A opção de devolver \textbf{no máximo duas opções}, ambas respetivas a apenas uma
             posição vazia, capitaliza na ideia de escolher uma variável de cada vez, visto
@@ -119,7 +119,7 @@ temos que na nossa solução:
             Como vimos em aula, isto pode reduzir o número de nós da árvore de procura
             em várias ordens de grandeza.
       \item A opção de devolver as jogadas obrigatórias sempre que possível é uma
-            aplicação da heurística LCV (Least Constraining Value).
+            aplicação da heurística LCV (\textit{Least Constraining Value}).
             De facto, ao escolhermos um valor obrigatório para a variável não estamos
             a impor qualquer condição ao tabuleiro que ainda não estivesse imposta
             (mesmo que indiretamente).
@@ -127,10 +127,27 @@ temos que na nossa solução:
 
 \section*{Análise Experimental}
 
+Tendo em conta a implementação descrita na página anterior, foram obtidos
+os seguintes resultados experimentais (para os testes públicos fornecidos pela docência):
+
+Note-se que a coluna \texttt{Tempo de Execução (s)} corresponde à media de tempo de execução,
+calculada recorrendo à ferramenta \texttt{hyperfine} (com 50 execuções por procura),
+que a solução implementada levava a resolver os treze testes públicos fornecidos
+pela docência.
+
+Aqui, não faz particular sentido optar pela BFS (em detrimento da DFS): partindo
+de uma configuração inicial, com $n$ posições vazias, é claro que uma solução
+terá sempre de estar no nível $n$ da árvore de procura (não podendo estar mais
+acima), visto que vamos sempre ter de executar $n$ jogadas para chegar a uma
+solução. Assim sendo, os possíveis ganhos de uma procura em largura primeiro não são
+aqui sentidos.
+
 % hyperfine em cada procura com e sem branching factor a 2
 
 % Assinalar que o branching factor tem bastante relevância na diferença entre
 % procuras.
+
+% TODO: falar de completude e consistência e cenas para cada procura
 
 \section*{Análise de Heurísticas}
 
