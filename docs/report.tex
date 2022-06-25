@@ -12,7 +12,6 @@
 \usepackage{svg}
 \usepackage{listings}
 \usepackage{xcolor}
-\usepackage{minted}
 
 \graphicspath{ {./} }
 \hypersetup{
@@ -41,84 +40,98 @@
 \setlist[constraintsList]{itemsep=1pt, topsep=1pt, label=\protect\mpbullet}
 
 \begin{document}
-  \begin{titlepage}
-    \begin{center}
-      \vspace*{5cm}
 
-      \Huge
-      \textbf{Projeto IA - Takuzu}
+\section*{Descrição do Problema e da Solução}
 
-      \vspace{0.5cm}
+Foi proposta a elaboração de um programa, em \texttt{Python}, que resolvesse, de
+forma eficiente, o \textit{puzzle} binário \textit{takuzu}.
+Este \textit{puzzle} pede-nos para encontrar um tabuleiro, totalmente preenchido
+com 0's e 1's, partindo de uma configuração inicial, que satisfaça as seguintes restrições:
+\begin{itemize}
+      \item Não podem haver 3 símbolos (0's ou 1's) iguais consecutivos;
+      \item A diferença entre o número de 0's e 1's numa dada linha ou coluna deve
+            ser no máximo 1: 0 em tabuleiros de tamanho par, 1 nos de tamanho ímpar;
+      \item Todas as linhas devem ser diferentes entre si;
+      \item Todas as colunas devem ser diferentes entre si.
+\end{itemize}
 
-      \LARGE
-      Diogo Gaspar (99207), João Rocha (99256)
+No contexto da matéria de Inteligência Artificial, isto consiste em encontrar um
+estado \textbf{completo} e \textbf{consistente}, onde:
+\begin{itemize}
+      \item Um estado diz-se \textbf{completo} se não tiver células vazias;
+      \item Um estado diz-se \textbf{consistente} se satisfizer as 4 regras mencionadas acima.
+\end{itemize}
 
-      \vspace{0.5cm}
-      \Large
-      Grupo 005 LEIC-A
+Chegar a um estado completo é bastante fácil, bastando para tal preencher todas as células do tabuleiro.
+Para garantir que atingimos um estado completo \textbf{e} consistente, basta então
+garantir que nunca fazemos uma jogada que nos leve a um estado inconsistente.
 
-      \vfill
-    \end{center}
-  \end{titlepage}
+Para nos ajudar a resolver o problema em mãos, vamos suportar-nos em algumas definições auxiliares.
+Dizemos que uma jogada é \textbf{impossível} se a execução desta levar a um estado
+inconsistente (o estado quebra alguma das regras supra-mencionadas, portanto).
+Destas regras, a única cuja verificação merece alguma explicação é a da identificação
+linhas/colunas repetidas.
+Para garantir que tal nunca acontece, guardamos (em \texttt{Board}) a qualquer momento
+dois \textit{sets}, cada um guardando \textit{strings} binárias que representam,
+respetivamente, as linhas e colunas que já estão totalmente preenchidas no tabuleiro.
+Esta solução com \textit{strings} binárias permite aumentar consideravelmente a
+\textbf{eficiência} da verificação de igualdade entre linhas/colunas: é mais eficiente
+comparar \textit{strings} que tuplos, por exemplo.
 
-  \section*{Descrição do Problema e da Solução}
+As jogadas podem ainda ser \textbf{possíveis} (corresponde apenas a não ser impossível)
+ou \textbf{obrigatórias} (se forem possíveis e o seu conjugado não for).
+Aqui, o conjugado de uma jogada corresponde à jogada que atua sobre a mesma célula,
+mas com o valor \textbf{conjugado}: isto é, se uma jogada coloca 0 na posição (1,3),
+a sua conjugada coloca 1 nessa mesma posição.
 
-  Foi proposta a elaboração de um programa, em \texttt{Python}, que resolvesse, de forma eficiente o \textit{puzzle} binário \textit{takuzu}. \\
+Em cada estado, verificamos sempre se há alguma célula vazia em que ambas as jogadas
+sejam impossíveis.
+Neste caso, qualquer jogada nessa célula levaria a um estado em que o tabuleiro é
+inconsistente e não vale a pena prosseguir neste ramo da árvore de procura.
 
-  Este \textit{puzzle} pede-nos para encontrar um tabuleiro, totalmente preenchido com 0's e 1's, partindo de uma configuração inicial, que satisfaça as seguintes restrições:
-  \begin{itemize}
-    \item Não podem haver 3 símbolos (0 ou 1) iguais consecutivos;
-    \item A diferença entre o número de 1's e 0's numa dada linha ou coluna deve ser no máximo 1 (isto é, deve ser 0 em tabuleiros de tamanho par e 1 nos de tamanho ímpar);
-    \item Todas as linhas devem ser diferentes entre si;
-    \item Todas as colunas devem ser diferentes entre si.
-  \end{itemize}
+Sempre que haja ações obrigatórias por realizar, num dado estado, realizamo-las.
+Isto é apenas lógico, visto que, por definição de obrigatoriedade, vamos ter de
+as executar para chegar a qualquer tabuleiro solução (considerando o ramo
+atual da árvore de procura, claro: uma jogada obrigatória num dado ramo poderá
+não o ser na solução).
+Assim, antecipando a sua execução, \textbf{reduzimos o número de nós da nossa árvore de procura}.
 
-  No contexto da matéria de Inteligência Artificial, isto consiste em encontrar um estado \textbf{completo} e \textbf{consistente}, em que:
-  \begin{itemize}
-    \item Um estado é completo se não tiver células vazias;
-    \item Um estado é consistente se satisfizer as 4 regras acima.
-  \end{itemize}
+Sempre que tal não é possível, escolhemos um par de ações possíveis para qualquer
+célula vazia do tabuleiro (note-se que uma vez que não há jogadas obrigatórias -
+células em que apenas uma jogada é possível - nem células em que não seja possível jogar,
+é necessariamente verdade que em qualquer célula vazia podemos colocar tanto um 0 como um 1).
 
-  Chegar a um estado completo é bastante fácil, basta preencher todas as células do tabuleiro.
-  Para garantir que atingimos um estado completo \textbf{e} consistente, basta então garantir que nunca fazemos uma jogada que nos leve a um estado inconsistente.
+Esta decisão de devolver sempre no máximo duas ações traduz-se em que o \textbf{\textit{branching factor}}
+da nossa árvore seja 2.
+Como vamos ver na análise experimental, isto é fundamental para a execução em tempo
+eficiente da nossa solução.
 
-  Chamamos uma jogada de \textbf{impossível} se a execução desta levar a um estado inconsistente (o estado quebra alguma das regras supramencionadas).
-  Destas regras, a única cuja verificação merece alguma explicação é a da identificação entre linhas/colunas.
-  Para garantir que isto nunca acontece, guardamos a qualquer momento (na classe \texttt{Board}) dois \textit{sets}, cada uma guardando \textit{strings} binárias que representam, respetivamente, as linhas e colunas que já estão totalmente preenchidas no tabuleiro.
-  Esta solução com \textit{strings} binárias permite aumentar consideravelmente a eficiência da verificação de igualdade entre linhas/colunas. 
+Como a nossa procura é feita de forma a nunca alcançar estados inconsistentes, basta
+que o nosso \texttt{goal\_test} verifique se está num estado completo - um estado
+sem células vazias (nesse caso será necessariamente uma solução).
 
-  As jogadas podem ainda ser \textbf{possíveis} (corresponde apenas a não ser impossível) ou \textbf{obrigatórias} (se forem possíveis e o seu conjugado não for).
-  Aqui, o conjugado de uma jogada corresponde à jogada que atua sobre a mesma célula, mas com o valor \textbf{conjugado} (isto é, se uma jogada coloca 0 na posição (1,3), a sua conjugada coloca 1 nessa mesma posição).
+Tendo em conta a perspetiva dos CSP's (Constraint Satisfaction Problems) abordada em aula,
+temos que na nossa solução:
+\begin{itemize}
+      \item A opção de devolver \textbf{no máximo duas opções}, ambas respetivas a apenas uma
+            posição vazia, capitaliza na ideia de escolher uma variável de cada vez, visto
+            que todas vão ter de ser escolhidas eventualmente.
+            Como vimos em aula, isto pode reduzir o número de nós da árvore de procura
+            em várias ordens de grandeza.
+      \item A opção de devolver as jogadas obrigatórias sempre que possível é uma
+            aplicação da heurística LCV (Least Constraining Value).
+            De facto, ao escolhermos um valor obrigatório para a variável não estamos
+            a impor qualquer condição ao tabuleiro que ainda não estivesse imposta
+            (mesmo que indiretamente).
+\end{itemize}
 
-  Em cada estado, verificamos sempre se há alguma célula vazia em que ambas as jogadas sejam impossíveis.
-  Neste caso, qualquer jogada nessa célula levaria a um estado em que o tabuleiro é inconsistente e não vale a pena prosseguir neste ramo da árvore de procura.
+\section*{Análise Experimental}
 
-  Sempre que haja ações obrigatórias por realizar, num dado estado, realizamo-las. 
-  Isto é apenas lógico, visto que, por definição de obrigatoriedade, vamos ter de as executar para chegar a qualquer tabuleiro solução.
-  Assim, antecipando a sua execução, reduzimos o número de nós da nossa árvore de procura.
+% hyperfine em cada procura com e sem branching factor a 2
 
-  Sempre que tal não é possível, escolhemos um par de ações possíveis para qualquer célula vazia do tabuleiro (note-se que uma vez que não há jogadas obrigatórias - células em que apenas uma jogada é possível - nem células em que não seja possível jogar, é necessariamente verdade que em qualquer célula vazia podemos colocar tanto um 0 como um 1).
+% Assinalar que o branching factor tem bastante relevância na diferença entre
+% procuras.
 
-  Esta decisão de devolver sempre no máximo duas ações traduz-se em que o \textit{branching factor} da nossa árvore é 2.
-  Como vamos ver na análise experimental, isto é fundamental para a execução em tempo eficiente da nossa solução.
+\section*{Análise de Heurísticas}
 
-  Como a nossa procura é feita de forma a nunca alcançar estados inconsistentes, basta que o nosso \texttt{goal\_test} verifique se está num estado completo - um estado sem células vazias (nesse caso será uma solução).
-
-  Tendo em conta a prespetiva dos CSP's (Constraint Satisfaction Problems), temos que na nossa solução:
-  \begin{itemize}
-    \item A opção de devolver no máximo duas opções, ambas respetivas a apenas uma posição vazia, capitaliza na ideia de escolher uma variável de cada vez, visto que todas vão ter de ser escolhidas eventualmente. 
-      Como vimos em aula, isto pode reduzir o número de nós da árvore de procura em várias ordens de grandeza.
-    \item A opção de devolver as jogadas obrigatórias sempre que possível é uma aplicação da heurística LCV (Least Constraining Value).
-      De facto, ao escolhermos um valor obrigatório para a variável não estamos a impor qualquer condição ao tabuleiro que ainda não estivesse imposta (mesmo que indiretamente).
-  \end{itemize}
-
-  \section*{Análise Experimental}
-
-  % hyperfine em cada procura com e sem branching factor a 2
-
-  % Assinalar que o branching factor tem bastante relevância na diferença entre
-  % procuras.
-
-  \section*{Análise de Heurísticas}
-  
 \end{document}
