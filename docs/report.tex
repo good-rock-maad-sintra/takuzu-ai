@@ -141,7 +141,31 @@ abordada em aula, temos que na nossa solução:
 
 \section*{Função Heurística}
 
-% TODO: brilha rocha
+Na nossa escolha de função heurística, insistimos na ideia do LCV.
+Como a procura A* escolhe nós por ordem crescentes da função $f(n) = g(n) + h(n)$, aos valores mais constringentes devem estar atribuídos valores da heurística maiores.
+Para isto, calculamos um "peso" que corresponde à média de duas componentes:
+\begin{itemize}
+      \item O constrangimento ao longo da linha/coluna da posição onde foi executada a última jogada, causado por essa jogada.
+        Idealizamos que uma jogada é tão mais constringente sobre uma linha quão mais perto deixar essa linha de estar saturada do valor que acabou de ser introduzido. 
+        Assim, calculamos o constrangimento sobre uma linha tirando a proporção de valores preenchidos que estão preenchidos com o valor que acabou de ser inserido.
+        O valor final desta componente é a média entre o constrangimento sobre a linha e o constrangimento sobre a coluna.
+      \item O constrangimento na "vizinhança" da posição onde foi executada a última jogada, causado por essa jogada.
+        Uma jogada é tão mais constringente sobre a sua vizinhança quantas mais jogadas se tornarem obrigatórias para prevenir 3 símbolos idênticos consecutivos.
+        Esta componente calcula então o número média de tais jogadas originadas.
+\end{itemize}
+
+O valor final da heurística é então o peso - que corresponde à média das duas componentes acima - multiplicado pelo número de células vazias.
+Ao multiplicarmos pelo número de células vazias fazemos com que a heurística seja \textbf{mais dominante}.
+De facto, se usássemos apenas o peso, a nossa procura A* não seria muito diferente da DFS.
+
+Observe-se que, como o valor do peso está entre 0 e 1, a nossa heurística é \textbf{admissível}, visto que a distância verdadeira ao objetivo é o número de células vazias, se estivermos num ramo que leva ao objetivo, e infinito caso contrário.
+Note-se no entanto que a heurística não é \textbf{consistente}.
+Desta forma, e uma vez que a função \texttt{astar\_search} implementa uma procura em grafo, a nossa heurística não garante uma procura \textbf{ótima}.
+Contudo, uma vez que todas as soluções estão à mesma distância do estado inicial, isto não é relevante.
+
+Na verdade, este facto torna as procuras informadas pouco mais úteis que as procuras cegas.
+A procura informada acaba por servir apenas para fazer escolhas mais "educada".
+Porém, como observamos na análise experimental, isto nem sequer leva a melhores resultados.
 
 \section*{Análise Experimental}
 
