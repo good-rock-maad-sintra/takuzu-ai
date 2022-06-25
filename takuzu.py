@@ -284,8 +284,8 @@ class Takuzu(Problem):
             return (col_tendency + row_tendency) / 2
 
         def calc_adj_constraint(node: Node):
-            """Returns the number of directions in which a play will be forced
-            to prevent 3 in a row."""
+            """Returns the average number of directions in which a play will be 
+            forced to prevent 3 in a row."""
             board = node.state.board
             row, col, val = node.action
             adj_pairs = [
@@ -296,7 +296,7 @@ class Takuzu(Problem):
             ]
             looking_for = [(val, board.EMPTY_CELL), (board.EMPTY_CELL, val)]
             
-            return sum(map(lambda x: int(x in looking_for), adj_pairs))
+            return sum(map(lambda x: int(x in looking_for), adj_pairs)) / 4
 
         def calc_weight(node: Node):
             """Calculates the 'weight' of a given node: heavier nodes are the
