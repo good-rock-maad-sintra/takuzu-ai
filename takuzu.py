@@ -9,6 +9,7 @@
 import sys
 from numpy import ceil
 from search import (
+    InstrumentedProblem,
     Problem,
     Node,
     astar_search,
@@ -347,8 +348,13 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
-    goal = breadth_first_tree_search(takuzu)
+    takuzu = InstrumentedProblem(takuzu)
+    goal = xxx(takuzu)
     if goal:
-        print(goal.state.board)
+        # print(goal.state.board)
+        print()
     else:
         print('The given takuzu board doesn\'t have a solution.')
+
+    print('Número de nós gerados: ' + str(takuzu.states))
+    print('Número de nós expandidos: ' + str(takuzu.succs))

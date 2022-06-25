@@ -12,6 +12,8 @@
 \usepackage{svg}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{adjustbox}
+\usepackage{booktabs}
 
 \graphicspath{ {./} }
 \hypersetup{
@@ -65,6 +67,8 @@ estado \textbf{completo} e \textbf{consistente}, onde:
 Chegar a um estado completo é bastante fácil, bastando para tal preencher todas as células do tabuleiro.
 Para garantir que atingimos um estado completo \textbf{e} consistente, basta então
 garantir que nunca fazemos uma jogada que nos leve a um estado inconsistente.
+
+% TODO: se tivermos espaço, adicionar aqui um exemplo de um tabuleiro completamente preenchido?
 
 Para nos ajudar a resolver o problema em mãos, vamos suportar-nos em algumas definições auxiliares.
 Dizemos que uma jogada é \textbf{impossível} se a execução desta levar a um estado
@@ -125,15 +129,22 @@ abordada em aula, temos que na nossa solução:
             (mesmo que indiretamente).
 \end{itemize}
 
+\section*{Função Heurística}
+
 \section*{Análise Experimental}
 
 Tendo em conta a implementação descrita na página anterior, foram obtidos
-os seguintes resultados experimentais (para os testes públicos fornecidos pela docência):
+os resultados experimentais (para os testes públicos fornecidos pela docência)
+descritos na \textbf{Tabela 1}. Note-se que a coluna \texttt{Tempo de Execução (ms)}
+corresponde à media de tempo de execução de cada teste, calculada recorrendo à ferramenta
+\texttt{hyperfine} (com 250 execuções por teste, por procura). A heurística
+utilizada para as procuras A* e Gananciosa é a referida na secção anterior.
 
-Note-se que a coluna \texttt{Tempo de Execução (s)} corresponde à media de tempo de execução,
-calculada recorrendo à ferramenta \texttt{hyperfine} (com 50 execuções por procura),
-que a solução implementada levava a resolver os treze testes públicos fornecidos
-pela docência.
+Note-se que caso não se escolha apenas um par de ações possíveis por nível da árvore,
+mas sim \textit{todas} as ações possíveis nesse nível, vamos ver uma alteração
+drástica de desempenho para as procuras cegas. As procuras informadas conseguem, contudo,
+manter o número de nós gerados e expandidos consistente com a implementação anterior.
+Os resultados experimentais relativos a esta implementação encontram-se na \textbf{Tabela 2}.
 
 Aqui, não faz particular sentido optar pela BFS (em detrimento da DFS): partindo
 de uma configuração inicial, com $n$ posições vazias, é claro que uma solução
@@ -142,6 +153,10 @@ acima), visto que vamos sempre ter de executar $n$ jogadas para chegar a uma
 solução. Assim sendo, os possíveis ganhos de uma procura em largura primeiro não são
 aqui sentidos.
 
+Adiciona-se ainda que, com um \textit{branching factor} tão pequeno (e com
+um número de nós igualmente pequeno) as quantidades de nós expandidos e gerados
+acabam por ser bastante próximas (e os tempos de execução obtidos também).
+
 % hyperfine em cada procura com e sem branching factor a 2
 
 % Assinalar que o branching factor tem bastante relevância na diferença entre
@@ -149,6 +164,70 @@ aqui sentidos.
 
 % TODO: falar de completude e consistência e cenas para cada procura
 
-\section*{Análise de Heurísticas}
+% TODO: conclusão, falar da que optámos no fim
+
+\section*{Anexos}
+
+% TODO: adicionar uma coluna com o tamanho do input
+
+\begin{adjustbox}{width={\textwidth}, totalheight={\textheight}, keepaspectratio}
+      \begin{tabular}{l cccc cccc cccc}
+            \toprule
+                  & \multicolumn{4}{c}{Tempo de Execução (ms)} & \multicolumn{4}{c}{Nós Gerados} & \multicolumn{4}{c}{Nós Expandidos}                                                                            \\
+            \cmidrule(lr){2-5} \cmidrule(lr){6-9} \cmidrule(lr){10-13}
+            Teste & BFS                                        & DFS                             & A*                                 & Gananciosa & BFS & DFS & A*  & Gananciosa & BFS & DFS & A*  & Gananciosa \\
+            \midrule
+            01    & 73.128                                     & 72.515                          & 73.633                             & 73.186     & 7   & 7   & 7   & 7          & 7   & 7   & 5   & 5          \\
+            02    & 72.843                                     & 73.416                          & 73.337                             & 73.053     & 7   & 7   & 779 & 834        & 7   & 7   & 493 & 516        \\
+            03    & 81.326                                     & 81.748                          & 82.538                             & 82.823     & 43  & 43  & 59  & 54         & 43  & 42  & 34  & 32         \\
+            04    & 77.715                                     & 75.694                          & 77.806                             & 77.450     & 32  & 32  & 230 & 230        & 32  & 32  & 118 & 118        \\
+            05    & 85.999                                     & 85.665                          & 86.816                             & 86.653     & 59  & 59  & 516 & 188        & 59  & 58  & 302 & 107        \\
+            06    & 111.490                                    & 110.929                         & 113.014                            & 112.789    & 85  & 82  & 199 & 199        & 85  & 81  & 111 & 112        \\
+            07    & 91.672                                     & 91.307                          & 92.653                             & 92.878     & 69  & 69  & 928 & 744        & 69  & 69  & 437 & 365        \\
+            08    & 74.727                                     & 74.672                          & 75.366                             & 75.339     & 19  & 19  & 599 & 588        & 19  & 19  & 386 & 380        \\
+            09    & 116.292                                    & 115.688                         & 118.930                            & 118.580    & 139 & 139 & 599 & 588        & 139 & 139 & 386 & 380        \\
+            10    & 154.169                                    & 151.870                         & 156.289                            & 156.253    & 184 & 184 & 338 & 312        & 184 & 184 & 232 & 215        \\
+            11    & 129.147                                    & 129.426                         & 133.098                            & 133.109    & 180 & 180 & 338 & 312        & 180 & 180 & 232 & 215        \\
+            12    & 98.991                                     & 99.399                          & 102.951                            & 102.772    & 166 & 166 & 338 & 312        & 166 & 166 & 232 & 215        \\
+            13    & 102.463                                    & 102.535                         & 107.096                            & 107.023    & 180 & 180 & 338 & 312        & 180 & 180 & 232 & 215        \\
+            \bottomrule
+      \end{tabular}
+\end{adjustbox}
+
+\vspace*{0.5cm}
+
+\centering
+Tabela 1: Resultados Experimentais, 1 variável por nível.
+
+\vspace*{1cm}
+
+\begin{adjustbox}{width={\textwidth}, totalheight={\textheight}, keepaspectratio}
+      \begin{tabular}{l cccc cccc cccc}
+            \toprule
+                  & \multicolumn{4}{c}{Tempo de Execução (ms)} & \multicolumn{4}{c}{Nós Gerados} & \multicolumn{4}{c}{Nós Expandidos}                                                                              \\
+            \cmidrule(lr){2-5} \cmidrule(lr){6-9} \cmidrule(lr){10-13}
+            Teste & BFS                                        & DFS                             & A*                                 & Gananciosa & BFS & DFS  & A*  & Gananciosa & BFS & DFS  & A*  & Gananciosa \\
+            \midrule
+            01    & 72.970                                     & 73.094                          & 73.127                             & 73.297     & 7   & 7    & 7   & 7          & 7   & 7    & 7   & 7          \\
+            02    & 73.474                                     & 73.014                          & 73.396                             & 73.446     & 7   & 7    & 7   & 7          & 7   & 7    & 7   & 7          \\
+            03    & 82.725                                     & 81.771                          & 82.583                             & 82.932     & 60  & 49   & 51  & 51         & 57  & 42   & 44  & 44         \\
+            04    & 76.408                                     & 76.588                          & 77.628                             & 77.514     & 32  & 32   & 32  & 32         & 32  & 32   & 32  & 32         \\
+            05    & 95.799                                     & 86.219                          & 93.721                             & 92.753     & 209 & 80   & 149 & 140        & 189 & 57   & 114 & 104        \\
+            06    & -                                          & 905.868                         & -                                  & -          & -   & 9537 & -   & -          & -   & 9430 & -   & -          \\
+            07    & 92.043                                     & 92.060                          & 93.145                             & 92.655     & 69  & 69   & 69  & 69         & 69  & 69   & 69  & 69         \\
+            08    & 74.632                                     & 74.724                          & 74.974                             & 75.032     & 19  & 19   & 19  & 19         & 19  & 19   & 19  & 19         \\
+            09    & 115.589                                    & 116.284                         & 118.702                            & 118.603    & 139 & 139  & 139 & 139        & 139 & 139  & 139 & 139        \\
+            10    & 152.918                                    & 151.920                         & 156.084                            & 156.218    & 184 & 184  & 184 & 184        & 184 & 184  & 184 & 184        \\
+            11    & 128.591                                    & 129.511                         & 133.295                            & 133.087    & 180 & 180  & 180 & 180        & 180 & 180  & 180 & 180        \\
+            12    & 98.737                                     & 99.028                          & 102.885                            & 102.364    & 166 & 166  & 166 & 166        & 166 & 166  & 166 & 166        \\
+            13    & 102.898                                    & 102.658                         & 106.931                            & 107.385    & 180 & 180  & 180 & 180        & 180 & 180  & 180 & 180        \\
+            \bottomrule
+      \end{tabular}
+\end{adjustbox}
+
+\vspace*{0.5cm}
+
+\centering
+Tabela 2: Resultados Experimentais, todas as ações possíveis por nível.
 
 \end{document}
