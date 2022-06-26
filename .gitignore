@@ -12,3 +12,4 @@ docs/*.fls
 docs/*.out
 docs/*.run.xml
 docs/*.xdv
+docs/svg-inkspace

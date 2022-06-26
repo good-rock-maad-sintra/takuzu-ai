@@ -9,6 +9,7 @@
 import sys
 from numpy import ceil
 from search import (
+    InstrumentedProblem,
     Problem,
     Node,
     astar_search,
@@ -245,10 +246,10 @@ class Takuzu(Problem):
             ac0, ac1 = (row, col, 0), (row, col, 1)
             if self.impossible(ac0, state) and self.impossible(ac1, state):
                 return []
-            elif self.mandatory(ac0, state):
-                return [ac0]
-            elif self.mandatory(ac1, state):
-                return [ac1]
+            # elif self.mandatory(ac0, state):
+            #     return [ac0]
+            # elif self.mandatory(ac1, state):
+            #     return [ac1]
 
             if not ran_once:
                 possible = [ac0, ac1]
@@ -283,8 +284,8 @@ class Takuzu(Problem):
             return (col_tendency + row_tendency) / 2
 
         def calc_adj_constraint(node: Node):
-            """Returns the number of directions in which a play will be forced
-            to prevent 3 in a row."""
+            """Returns the average number of directions in which a play will be 
+            forced to prevent 3 in a row."""
             board = node.state.board
             row, col, val = node.action
             adj_pairs = [
@@ -295,7 +296,7 @@ class Takuzu(Problem):
             ]
             looking_for = [(val, board.EMPTY_CELL), (board.EMPTY_CELL, val)]
             
-            return sum(map(lambda x: int(x in looking_for), adj_pairs))
+            return sum(map(lambda x: int(x in looking_for), adj_pairs)) / 4
 
         def calc_weight(node: Node):
             """Calculates the 'weight' of a given node: heavier nodes are the
@@ -347,8 +348,13 @@ class Takuzu(Problem):
 if __name__ == "__main__":
     board = Board.parse_instance_from_stdin()
     takuzu = Takuzu(board)
+    takuzu = InstrumentedProblem(takuzu)
     goal = greedy_search(takuzu)
     if goal:
-        print(goal.state.board)
+        # print(goal.state.board)
+        print()
     else:
         print('The given takuzu board doesn\'t have a solution.')
+
+    print('Número de nós gerados: ' + str(takuzu.states))
+    print('Número de nós expandidos: ' + str(takuzu.succs))
