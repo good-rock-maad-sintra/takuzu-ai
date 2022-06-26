@@ -54,11 +54,7 @@ Este \textit{puzzle} pede-nos para encontrar um tabuleiro, totalmente preenchido
   \item Todas as linhas devem ser diferentes entre si (o mesmo para as colunas).
 \end{itemize}
 
-No contexto da matéria de Inteligência Artificial, isto consiste em encontrar um estado \textbf{completo} e \textbf{consistente}, onde:
-\begin{itemize}
-  \item Um estado diz-se \textbf{completo} se não tiver células vazias;
-  \item Um estado diz-se \textbf{consistente} se satisfizer as 4 regras mencionadas acima.
-\end{itemize}
+No contexto da matéria de Inteligência Artificial, isto consiste em encontrar um estado \textbf{completo} e \textbf{consistente}, onde um estado diz-se \textbf{completo} se não tiver células vazias e \textbf{consistente} se satisfizer as 4 regras mencionadas acima.
 
 Chegar a um estado completo é bastante fácil, bastando para tal preencher todas as células do tabuleiro.
 Para garantir que atingimos um estado completo \textbf{e} consistente, basta então garantir que nunca fazemos uma jogada que nos leve a um estado inconsistente.
@@ -113,7 +109,7 @@ Ao multiplicarmos pelo número de células vazias fazemos com que a heurística 
 De facto, se usássemos apenas o peso, a nossa procura A* não seria muito diferente da DFS.
 
 Observe-se que, como o valor do peso está entre 0 e 1, a nossa heurística é \textbf{admissível}, visto que a distância verdadeira ao objetivo é o número de células vazias, se estivermos num ramo que leva ao objetivo, e infinito caso contrário.
-Note-se no entanto que a heurística não é \textbf{consistente}.
+Note-se no entanto que não é \textbf{consistente}.
 Desta forma, e uma vez que a função \texttt{astar\_search} implementa uma procura em grafo, a nossa heurística não garante uma procura \textbf{ótima} - irrelevante, dado que todas as soluções estão à mesma distância do estado inicial.
 
 Na verdade, este facto torna as procuras informadas pouco mais úteis que as procuras cegas.
@@ -141,7 +137,7 @@ A nossa solução é, para todas as procuras, completa, visto que, na pior das h
 Pode-se ainda dizer que é ótima, também para todas as procuras, já que a distância ao objetivo é predeterminada.
 
 A heurística escolhida não leva a melhorias significativas (na verdade é pior que uma DFS), visto que este problema, por natureza não benefícia de procuras informadas.
-Isto verifica-se uma vez que a distância ao objetivo é predeterminada.
+Isto verifica-se uma vez que a distância ao objetivo é predeterminada e conhecida à partida.
 
 Na solução submetida para avaliação automática, via \textit{Mooshak}, optámos por utilizar a versão original, com 1 variável por nível, utilizando uma procura em profundidade primeiro (por ser a mais eficiente).
 
